@@ -9,9 +9,11 @@ import matplotlib.pyplot as plt
 
 ################## utils and build knowledge about data ###################
 
-def build_knowledge(training_instances, validate_instances):
+def build_knowledge(training_instances, validate_instances, test_instances):
     MAX_SEQ_LENGTH = 0
     item_freq_dict = {}
+    user_consumption_dict = {}
+    user_idx = -1
 
     for line in training_instances:
         elements = line.split("|")
@@ -21,6 +23,8 @@ def build_knowledge(training_instances, validate_instances):
 
         if len(elements) == 3:
             basket_seq = elements[1:]
+            user_idx += 1
+            user_consumption_dict[user_idx] = list()
         else:
             basket_seq = [elements[-1]]
 
@@ -31,6 +35,9 @@ def build_knowledge(training_instances, validate_instances):
                     item_freq_dict[item_obs] = 1
                 else:
                     item_freq_dict[item_obs] += 1
+
+                if (item_obs not in user_consumption_dict[user_idx]):
+                    user_consumption_dict[user_idx].append(item_obs)
 
     for line in validate_instances:
         elements = line.split("|")
@@ -41,6 +48,8 @@ def build_knowledge(training_instances, validate_instances):
         label = int(elements[0])
         if label != 1 and len(elements) == 3:
             basket_seq = elements[1:]
+            user_idx += 1
+            user_consumption_dict[user_idx] = list()
         else:
             basket_seq = [elements[-1]]
 
@@ -51,6 +60,25 @@ def build_knowledge(training_instances, validate_instances):
                     item_freq_dict[item_obs] = 1
                 else:
                     item_freq_dict[item_obs] += 1
+
+                if (item_obs not in user_consumption_dict[user_idx]):
+                    user_consumption_dict[user_idx].append(item_obs)
+
+    for line in test_instances :
+        elements = line.split("|")
+        label = int(elements[0])
+
+        if label != 1 and len(elements) == 3:
+          basket_seq = elements[1:]
+          user_idx += 1
+          user_consumption_dict[user_idx] = list()
+
+        for basket in basket_seq:
+            item_list = re.split('[\\s]+', basket)
+            for item_obs in item_list:
+              if (item_obs not in user_consumption_dict[user_idx]):
+                    user_consumption_dict[user_idx].append(item_obs)
+
 
     items = sorted(list(item_freq_dict.keys()))
     item_dict = dict()
@@ -63,10 +91,12 @@ def build_knowledge(training_instances, validate_instances):
     item_probs /= np.sum(item_probs)
 
     reversed_item_dict = dict(zip(item_dict.values(), item_dict.keys()))
-    return MAX_SEQ_LENGTH, item_dict, reversed_item_dict, item_probs
+    return MAX_SEQ_LENGTH, item_dict, reversed_item_dict, item_probs, user_consumption_dict
 
-def build_sparse_adjacency_matrix_v2(training_instances, validate_instances, item_dict):
+
+def build_item_vs_item_sparse_adj_matrix(training_instances, validate_instances, user_consumption_dict, item_dict):
     NB_ITEMS = len(item_dict)
+    NB_USERS = len(user_consumption_dict)
 
     pairs = {}
     for line in training_instances:
@@ -100,7 +130,22 @@ def build_sparse_adjacency_matrix_v2(training_instances, validate_instances, ite
             for t in list(itertools.product(id_list, id_list)):
                 add_tuple(t, pairs)
 
-    return create_sparse_matrix(pairs, NB_ITEMS)
+    return create_sparse_matrix(pairs, NB_ITEMS + NB_USERS)
+
+
+def build_user_vs_item_sparse_adj_matrix(user_consumption_dict, item_dict):
+    NB_ITEMS = len(item_dict)
+    NB_USERS = len(user_consumption_dict)
+
+    pairs = {}
+    for u in user_consumption_dict.keys():
+        list_consume_items = user_consumption_dict[u]
+        for item in list_consume_items:
+            user_node_idx = NB_ITEMS + u
+            item_node_idx = item_dict[item]
+            add_tuple((user_node_idx, item_node_idx), pairs)
+
+    return create_sparse_matrix(pairs, NB_ITEMS + NB_USERS)
 
 def add_tuple(t, pairs):
     assert len(t) == 2
