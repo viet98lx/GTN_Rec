@@ -67,9 +67,8 @@ class GTN(nn.Module):
         H = H.t()
         return H
 
-    def forward(self, A, X, seq_basket, target_basket, hidden):
+    def forward(self, A, X, seq_len, seq_basket, target_basket, hidden):
         batch_size = seq_basket.shape[0]
-        seq_len = [len(seq) for seq in seq_basket]
         # Learn new structure graph by combine adjacency matrices
         A = A.unsqueeze(0).permute(0,3,1,2)
         Ws = []
@@ -112,8 +111,9 @@ class GTN(nn.Module):
         # predict next items score
         next_item_probs = torch.sigmoid(hidden_to_score)
 
-        loss = self.loss(next_item_probs, target_basket)
-        return loss, target_basket, Ws
+        # loss = self.loss(next_item_probs, target_basket)
+        # return loss, target_basket, Ws
+        return next_item_probs
 
 class GTLayer(nn.Module):
     
