@@ -24,7 +24,7 @@ def train_model(model, loss_func, optimizer, A, X_feature, train_loader, epoch, 
 
         optimizer.zero_grad()  # clear gradients for this training step
 
-        predict = model(A, X_feature, train_seq_len, x_train_batch, target_basket_train, hidden)  # predicted output
+        predict = model(A, X_feature, train_seq_len, x_train_batch, hidden)  # predicted output
         loss = loss_func(predict, target_basket_train)  # WBCE loss
         loss.backward()  # backpropagation, compute gradients
         optimizer.step()  # update gradient

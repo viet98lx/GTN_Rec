@@ -9,26 +9,30 @@ import pdb
 
 class GTN(nn.Module):
     
-    def __init__(self, num_edge, num_channels, rnn_units, rnn_layers, w_in, w_out, num_class, num_layers, norm):
+    def __init__(self, config_param, max_seq_length, item_probs, device, d_type, norm):
         super(GTN, self).__init__()
-        self.num_edge = num_edge
-        self.num_channels = num_channels
-        self.rnn_units = rnn_units
-        self.rnn_layers = rnn_layers
-        self.w_in = w_in
-        self.w_out = w_out
-        self.num_class = num_class
-        self.num_layers = num_layers
+        self.num_edge = config_param['num_edge']
+        self.num_channels = config_param['num_channels']
+        self.rnn_units = config_param['rnn_units']
+        self.rnn_layers = config_param['rnn_layers']
+        self.w_in = config_param['w_in']
+        self.w_out = config_param['w_out']
+        self.num_class = config_param['num_class']
+        self.num_layers = config_param['num_layers']
+        self.max_seq_length = max_seq_length
+        self.item_probs = item_probs
+        self.device = device
+        self.dtype = d_type
         self.is_norm = norm
         layers = []
-        for i in range(num_layers):
+        for i in range(self.num_layers):
             if i == 0:
-                layers.append(GTLayer(num_edge, num_channels, first=True))
+                layers.append(GTLayer(self.num_edge, self.num_channels, first=True))
             else:
-                layers.append(GTLayer(num_edge, num_channels, first=False))
+                layers.append(GTLayer(self.num_edge, self.num_channels, first=False))
         self.layers = nn.ModuleList(layers)
-        self.weight = nn.Parameter(torch.Tensor(w_in, w_out))
-        self.bias = nn.Parameter(torch.Tensor(w_out))
+        self.weight = nn.Parameter(torch.Tensor(self.w_in, self.w_out))
+        self.bias = nn.Parameter(torch.Tensor(self.w_out))
         self.loss = nn.CrossEntropyLoss()
         self.lstm = nn.LSTM(self.w_out, self.rnn_units, self.rnn_layers, bias=True, batch_first=True)
         self.linear1 = nn.Linear(self.w_out*self.num_channels, self.w_out)
@@ -67,7 +71,7 @@ class GTN(nn.Module):
         H = H.t()
         return H
 
-    def forward(self, A, X, seq_len, seq_basket, target_basket, hidden):
+    def forward(self, A, X, seq_len, seq_basket, hidden):
         batch_size = seq_basket.shape[0]
         # Learn new structure graph by combine adjacency matrices
         A = A.unsqueeze(0).permute(0,3,1,2)
@@ -96,10 +100,10 @@ class GTN(nn.Module):
 
         X_ = self.linear1(X_)
 
-        basket = torch.zero_(batch_size, self.basket_dim)
-        for idx, seq in enumerate(seq_basket):
-            item_in_basket = X_[seq]
-            basket[idx] = torch.max(item_in_basket, dim = 0).values
+        basket = torch.zeros(batch_size, self.max_seq_length, self.w_out)
+        for seq_id, basket_id, item_id in seq_basket:
+            item_in_basket = X_[item_id]
+            basket[seq_id, basket_id] += item_in_basket
 
         lstm_out, (h_n, c_n) = self.lstm(basket, hidden)
         actual_index = torch.arange(0, batch_size) * self.max_seq_length + (seq_len - 1)
