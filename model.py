@@ -20,6 +20,7 @@ class GTN(nn.Module):
         self.w_out = config_param['w_out']
         self.num_class = config_param['num_class']
         self.num_layers = config_param['num_layers']
+        self.batch_size = config_param['batch_size']
         self.max_seq_length = max_seq_length
         self.item_probs = item_probs
         self.device = device
