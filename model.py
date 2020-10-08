@@ -25,6 +25,7 @@ class GTN(nn.Module):
         self.device = device
         self.dtype = d_type
         self.is_norm = norm
+        self.nb_items = len(item_probs)
         layers = []
         for i in range(self.num_layers):
             if i == 0:
