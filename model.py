@@ -35,7 +35,6 @@ class GTN(nn.Module):
         self.layers = nn.ModuleList(layers)
         self.weight = nn.Parameter(torch.Tensor(self.w_in, self.w_out))
         self.bias = nn.Parameter(torch.Tensor(self.w_out))
-        self.loss = nn.CrossEntropyLoss()
         self.lstm = nn.LSTM(self.w_out, self.rnn_units, self.rnn_layers, bias=True, batch_first=True)
         self.linear1 = nn.Linear(self.w_out*self.num_channels, self.w_out)
         self.h2item_score = nn.Linear(in_features=self.rnn_units, out_features=self.nb_items, bias=False)

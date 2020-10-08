@@ -12,29 +12,37 @@ from torch_scatter import scatter_add
 import torch_sparse
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.utils import remove_self_loops, add_self_loops
+import utils
 
 class GTN(nn.Module):
     
-    def __init__(self, num_edge, num_channels, w_in, w_out, num_class, num_nodes, num_layers):
+    def __init__(self, config_param, max_seq_length, item_probs, device, d_type, norm):
         super(GTN, self).__init__()
-        self.num_edge = num_edge
-        self.num_channels = num_channels
-        self.num_nodes = num_nodes
-        self.w_in = w_in
-        self.w_out = w_out
-        self.num_class = num_class
-        self.num_layers = num_layers
+        self.num_edge = config_param['num_edge']
+        self.num_channels = config_param['num_channels']
+        self.rnn_units = config_param['rnn_units']
+        self.rnn_layers = config_param['rnn_layers']
+        self.w_in = config_param['w_in']
+        self.w_out = config_param['w_out']
+        self.num_class = config_param['num_class']
+        self.num_layers = config_param['num_layers']
+        self.max_seq_length = max_seq_length
+        self.item_probs = item_probs
+        self.device = device
+        self.dtype = d_type
+        self.is_norm = norm
+        self.nb_items = len(item_probs)
         layers = []
-        for i in range(num_layers):
+        for i in range(self.num_layers):
             if i == 0:
-                layers.append(GTLayer(num_edge, num_channels, num_nodes, first=True))
+                layers.append(GTLayer(self.num_edge, self.num_channels, first=True))
             else:
-                layers.append(GTLayer(num_edge, num_channels, num_nodes, first=False))
+                layers.append(GTLayer(self.num_edge, self.num_channels, first=False))
         self.layers = nn.ModuleList(layers)
-        self.loss = nn.CrossEntropyLoss()
-        self.gcn = GCNConv(in_channels=self.w_in, out_channels=w_out)
-        self.linear1 = nn.Linear(self.w_out*self.num_channels, self.w_out)
-        self.linear2 = nn.Linear(self.w_out, self.num_class)
+        self.gcn = GCNConv(in_channels=self.w_in, out_channels=self.w_out)
+        self.lstm = nn.LSTM(self.w_out, self.rnn_units, self.rnn_layers, bias=True, batch_first=True)
+        self.linear1 = nn.Linear(self.w_out * self.num_channels, self.w_out)
+        self.h2item_score = nn.Linear(in_features=self.rnn_units, out_features=self.nb_items, bias=False)
 
     def normalization(self, H):
         norm_H = []
@@ -61,7 +69,8 @@ class GTN(nn.Module):
 
         return deg_inv_sqrt[row], deg_inv_sqrt[col]
 
-    def forward(self, A, X, target_x, target):
+    def forward(self, A, X, seq_len, seqs, hidden):
+        batch_size = seqs.shape[0]
         Ws = []
         for i in range(self.num_layers):
             if i == 0:
@@ -78,12 +87,32 @@ class GTN(nn.Module):
             else:
                 edge_index, edge_weight = H[i][0], H[i][1]
                 X_ = torch.cat((X_,F.relu(self.gcn(X,edge_index=edge_index.detach(), edge_weight=edge_weight))), dim=1)
+
         X_ = self.linear1(X_)
-        X_ = F.relu(X_)
-        #X_ = F.dropout(X_, p=0.5)
-        y = self.linear2(X_[target_x])
-        loss = self.loss(y, target)
-        return loss, y, Ws
+
+        basket_seqs = torch.zeros(batch_size, self.max_seq_length, self.w_out)
+        for seq_id, seq in enumerate(seqs, 0):
+            for basket_id, basket in enumerate(seq, 0):
+                items_id = torch.nonzero(basket).squeeze()
+                if items_id.size()[0] > 1:
+                    basket_seqs[seq_id, basket_id] = utils.max_pooling(X_[items_id])
+                else:
+                    if items_id.size()[0] == 1:
+                        basket_seqs[seq_id, basket_id] = X_[items_id]
+
+        lstm_out, (h_n, c_n) = self.lstm(basket_seqs, hidden)
+        actual_index = torch.arange(0, batch_size) * self.max_seq_length + (seq_len - 1)
+        actual_lstm_out = lstm_out.reshape(-1, self.rnn_units)[actual_index]
+
+        hidden_to_score = self.h2item_score(actual_lstm_out)
+        # print(hidden_to_score)
+
+        # predict next items score
+        next_item_probs = torch.sigmoid(hidden_to_score)
+
+        # loss = self.loss(next_item_probs, target_basket)
+        # return loss, target_basket, Ws
+        return next_item_probs
 
 class GTLayer(nn.Module):
     
