@@ -71,6 +71,13 @@ class GTN(nn.Module):
 
         return deg_inv_sqrt[row], deg_inv_sqrt[col]
 
+    def init_hidden(self, batch_size):
+        # Before we've done anything, we dont have any hidden state.
+        # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+        weight = next(self.parameters()).data
+        return (weight.new(self.rnn_layers, batch_size, self.rnn_units).zero_(),
+                weight.new(self.rnn_layers, batch_size, self.rnn_units).zero_())
+
     def forward(self, A, X, seq_len, seqs, hidden):
         batch_size = seqs.shape[0]
         Ws = []
