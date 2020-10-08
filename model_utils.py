@@ -6,6 +6,7 @@ def train_model(model, loss_func, optimizer, A, X_feature, train_loader, epoch, 
     running_train_loss = 0.0
     running_train_recall = 0.0
     device = model.device
+    dtype = model.dtype
     nb_train_batch = len(train_loader.dataset) // model.batch_size
     if len(train_loader.dataset) % model.batch_size == 0:
         total_train_batch = nb_train_batch
@@ -17,10 +18,10 @@ def train_model(model, loss_func, optimizer, A, X_feature, train_loader, epoch, 
     for i, data in enumerate(train_loader, 0):
 
         user_seq, train_seq_len, target_basket = data
-        x_train_batch = user_seq.to_dense().to(dtype=model.d_type, device=device)
+        x_train_batch = user_seq.to_dense().to(dtype=dtype, device=device)
         real_batch_size = x_train_batch.size()[0]
         hidden = model.init_hidden(real_batch_size)
-        target_basket_train = target_basket.to(device=device, dtype=model.d_type)
+        target_basket_train = target_basket.to(device=device, dtype=dtype)
 
         optimizer.zero_grad()  # clear gradients for this training step
 
