@@ -247,3 +247,9 @@ def plot_recall(train_recalls, val_recalls, images_dir):
         plt.legend(frameon=False)
         plt.savefig(f"{images_dir}/recalls.png")
         plt.show()
+
+def max_pooling(a):
+    return torch.max(a, dim=0)[0]
+
+def avg_pooling(a):
+    return torch.mean(a, dim=0)

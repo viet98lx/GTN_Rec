@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import math
 from matplotlib import pyplot as plt
 import pdb
+import utils
 
 
 class GTN(nn.Module):
@@ -71,8 +72,8 @@ class GTN(nn.Module):
         H = H.t()
         return H
 
-    def forward(self, A, X, seq_len, seq_basket, hidden):
-        batch_size = seq_basket.shape[0]
+    def forward(self, A, X, seq_len, seqs, hidden):
+        batch_size = seqs.shape[0]
         # Learn new structure graph by combine adjacency matrices
         A = A.unsqueeze(0).permute(0,3,1,2)
         Ws = []
@@ -100,12 +101,17 @@ class GTN(nn.Module):
 
         X_ = self.linear1(X_)
 
-        basket = torch.zeros(batch_size, self.max_seq_length, self.w_out)
-        for seq_id, basket_id, item_id in seq_basket:
-            item_in_basket = X_[item_id]
-            basket[seq_id, basket_id] += item_in_basket
+        basket_seqs = torch.zeros(batch_size, self.max_seq_length, self.w_out)
+        for seq_id, seq in enumerate(seqs, 0):
+            for basket_id, basket in enumerate(seq, 0):
+                items_id = torch.nonzero(basket).squeeze()
+                if items_id.size()[0] > 1:
+                    basket_seqs[seq_id, basket_id] = utils.max_pooling(X_[items_id])
+                else:
+                    if items_id.size()[0] == 1:
+                        basket_seqs[seq_id, basket_id] = X_[items_id]
 
-        lstm_out, (h_n, c_n) = self.lstm(basket, hidden)
+        lstm_out, (h_n, c_n) = self.lstm(basket_seqs, hidden)
         actual_index = torch.arange(0, batch_size) * self.max_seq_length + (seq_len - 1)
         actual_lstm_out = lstm_out.reshape(-1, self.rnn_units)[actual_index]
 
