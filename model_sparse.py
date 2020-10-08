@@ -16,7 +16,7 @@ import utils
 
 class GTN(nn.Module):
     
-    def __init__(self, config_param, max_seq_length, item_probs, device, d_type, norm):
+    def __init__(self, config_param, max_seq_length, item_probs, device, d_type, num_nodes, norm):
         super(GTN, self).__init__()
         self.num_edge = config_param['num_edge']
         self.num_channels = config_param['num_channels']
@@ -30,14 +30,15 @@ class GTN(nn.Module):
         self.item_probs = item_probs
         self.device = device
         self.dtype = d_type
+        self.num_nodes = num_nodes
         self.is_norm = norm
         self.nb_items = len(item_probs)
         layers = []
         for i in range(self.num_layers):
             if i == 0:
-                layers.append(GTLayer(self.num_edge, self.num_channels, first=True))
+                layers.append(GTLayer(self.num_edge, self.num_channels, self.num_nodes, first=True))
             else:
-                layers.append(GTLayer(self.num_edge, self.num_channels, first=False))
+                layers.append(GTLayer(self.num_edge, self.num_channels, self.num_nodes, first=False))
         self.layers = nn.ModuleList(layers)
         self.gcn = GCNConv(in_channels=self.w_in, out_channels=self.w_out)
         self.lstm = nn.LSTM(self.w_out, self.rnn_units, self.rnn_layers, bias=True, batch_first=True)
