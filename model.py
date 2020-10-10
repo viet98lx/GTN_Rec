@@ -10,7 +10,7 @@ import utils
 
 class GTN(nn.Module):
     
-    def __init__(self, config_param, max_seq_length, item_probs, device, d_type, norm):
+    def __init__(self, config_param, max_seq_length, item_probs, device, d_type, num_nodes, norm):
         super(GTN, self).__init__()
         self.num_edge = config_param['num_edge']
         self.num_channels = config_param['num_channels']
@@ -25,6 +25,7 @@ class GTN(nn.Module):
         self.item_probs = item_probs
         self.device = device
         self.dtype = d_type
+        self.num_nodes = num_nodes
         self.is_norm = norm
         self.nb_items = len(item_probs)
         layers = []
