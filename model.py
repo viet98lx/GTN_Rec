@@ -69,7 +69,7 @@ class GTN(nn.Module):
         deg = torch.sum(H, dim=1)
         deg_inv = deg.pow(-1)
         deg_inv[deg_inv == float('inf')] = 0
-        deg_inv = deg_inv*torch.eye(H.shape[0]).type(torch.FloatTensor).to(self.device)
+        deg_inv = deg_inv*(torch.eye(H.shape[0]).type(torch.FloatTensor).to(self.device))
         H = torch.mm(deg_inv,H)
         H = H.t()
         return H
