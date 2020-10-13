@@ -108,7 +108,16 @@ class MessagePassing(torch.nn.Module):
 
         update_args = [kwargs[arg] for arg in self.__update_args__]
 
+        print("Message args: ")
+        print(message_args)
+        print("Update args: ")
+        print(update_args)
+        print("Self args: ")
+        print(self.aggr)
+
         out = self.message(*message_args)
+        print("Out: ")
+        print(out)
         out = scatter_(self.aggr, out, edge_index[i], dim_size=size[i])
         out = self.update(out, *update_args)
 
