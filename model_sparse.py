@@ -99,16 +99,15 @@ class GTN(nn.Module):
 
         X_ = self.linear1(X_)
 
-        basket_seqs = torch.zeros(batch_size, self.max_seq_length, self.w_out)
-        for seq_id, seq in enumerate(seqs, 0):
-            for basket_id, basket in enumerate(seq, 0):
-                items_id = torch.nonzero(basket).squeeze()
-                if items_id.size()[0] > 1:
-                    basket_seqs[seq_id, basket_id] = utils.max_pooling(X_[items_id])
-                else:
-                    if items_id.size()[0] == 1:
-                        basket_seqs[seq_id, basket_id] = X_[items_id]
+        basket_seqs = torch.zeros(batch_size*self.max_seq_length, self.w_out)
+        seqs = seqs.contiguous().view(-1, self.nb_items)
+        for i, basket in enumerate(seqs, 0):
+            if torch.sum(basket) > 0:
+                item_idx = torch.nonzero(basket, as_tuple=True)
+                basket_embed = utils.max_pooling(X_[item_idx])
+                basket_seqs[i] = basket_embed
 
+        basket_seqs = basket_seqs.contiguous().view(-1, self.max_seq_length, self.w_out)
         lstm_out, (h_n, c_n) = self.lstm(basket_seqs, hidden)
         actual_index = torch.arange(0, batch_size) * self.max_seq_length + (seq_len - 1)
         actual_lstm_out = lstm_out.reshape(-1, self.rnn_units)[actual_index]
