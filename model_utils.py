@@ -54,7 +54,7 @@ def train_model(model, loss_func, optimizer, A, X_feature, train_loader, epoch, 
             print('--------------------------------------------------------------')
 
             start = time.time()
-
+    torch.cuda.empty_cache()
     print('finish a train epoch')
     return model, optimizer, avg_train_loss, avg_train_recall
 
