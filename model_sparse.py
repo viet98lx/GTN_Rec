@@ -99,7 +99,7 @@ class GTN(nn.Module):
 
         X_ = self.linear1(X_)
 
-        basket_seqs = torch.zeros(batch_size*self.max_seq_length, self.w_out)
+        basket_seqs = torch.zeros(batch_size*self.max_seq_length, self.w_out, dtype=self.dtype, device=self.device)
         seqs = seqs.contiguous().view(-1, self.nb_items)
         for i, basket in enumerate(seqs, 0):
             if torch.sum(basket) > 0:
