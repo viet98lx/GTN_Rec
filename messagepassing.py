@@ -99,8 +99,8 @@ class MessagePassing(torch.nn.Module):
 
         kwargs['edge_index'] = edge_index
         kwargs['size'] = size
-        print("kwargs: ")
-        print(kwargs)
+        # print("kwargs: ")
+        # print(kwargs)
         for (idx, arg) in self.__special_args__:
             if arg[-2:] in ij.keys():
                 message_args.insert(idx, kwargs[arg[:-2]][ij[arg[-2:]]])
@@ -109,16 +109,16 @@ class MessagePassing(torch.nn.Module):
 
         update_args = [kwargs[arg] for arg in self.__update_args__]
 
-        print("Message args: ")
-        print(message_args)
-        print("Update args: ")
-        print(update_args)
-        print("Self args: ")
-        print(self.aggr)
+        # print("Message args: ")
+        # print(message_args)
+        # print("Update args: ")
+        # print(update_args)
+        # print("Self args: ")
+        # print(self.aggr)
 
         out = self.message(*message_args)
-        print("Out: ")
-        print(out)
+        # print("Out: ")
+        # print(out)
         out = scatter_(self.aggr, out, edge_index[i], dim_size=size[i])
         out = self.update(out, *update_args)
 
