@@ -14,10 +14,9 @@ class GTN(nn.Module):
         super(GTN, self).__init__()
         self.num_edge = config_param['num_edge']
         self.num_channels = config_param['num_channels']
+        self.basket_embed_dim = config_param['basket_embed_dim']
         self.rnn_units = config_param['rnn_units']
         self.rnn_layers = config_param['rnn_layers']
-        self.w_in = config_param['w_in']
-        self.w_out = config_param['w_out']
         self.num_class = config_param['num_class']
         self.num_layers = config_param['num_layers']
         self.batch_size = config_param['batch_size']
@@ -35,10 +34,8 @@ class GTN(nn.Module):
             else:
                 layers.append(GTLayer(self.num_edge, self.num_channels, first=False))
         self.layers = nn.ModuleList(layers)
-        self.weight = nn.Parameter(torch.Tensor(self.w_in, self.w_out))
-        self.bias = nn.Parameter(torch.Tensor(self.w_out))
-        self.lstm = nn.LSTM(self.w_out, self.rnn_units, self.rnn_layers, bias=True, batch_first=True)
-        self.linear1 = nn.Linear(self.w_out * self.num_channels, self.w_out)
+        self.lstm = nn.LSTM(self.basket_embed_dim, self.rnn_units, self.rnn_layers, bias=True, batch_first=True)
+        self.linear1 = nn.Linear(self.basket_embed_dim * self.num_channels, self.basket_embed_dim)
         self.h2item_score = nn.Linear(in_features=self.rnn_units, out_features=self.nb_items, bias=False)
         # self.linear2 = nn.Linear(self.w_out, self.num_class)
         item_bias = torch.ones(self.nb_items) / self.nb_items
@@ -48,11 +45,6 @@ class GTN(nn.Module):
     def reset_parameters(self):
         nn.init.xavier_uniform_(self.weight)
         nn.init.zeros_(self.bias)
-
-    def gcn_conv(self, X, H):
-        X = torch.mm(X, self.weight)
-        H = self.norm(H, add=True)
-        return torch.mm(H.t(), X)
 
     def normalization(self, H):
         for i in range(self.num_channels):

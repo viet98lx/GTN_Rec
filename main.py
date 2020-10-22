@@ -24,7 +24,7 @@ parser.add_argument('--num_channels', type=int, default=2, help='number of chann
 # parser.add_argument('--alpha', type=float, help='coefficient of C matrix in predict item score', default=0.4)
 parser.add_argument('--lr', type=float, help='learning rate of optimizer', default=0.001)
 parser.add_argument('--dropout', type=float, help='drop out after linear model', default= 0.2)
-parser.add_argument('--item_embed_dim', type=int, help='dimension of linear layers', default=8)
+parser.add_argument('--basket_embed_dim', type=int, help='dimension of linear layers', default=8)
 # parser.add_argument('--embed_dim_transformer', type=int, help='dimension of transformer project layers', default=8)
 # parser.add_argument('--transformer_layers', type=int, help='number transformer layers', default=1)
 # parser.add_argument('--transformer_head', type=int, help='number heads of transformer layers', default=2)
@@ -44,10 +44,10 @@ seed = args.seed
 torch.manual_seed(seed)
 
 config_param={}
+config_param['basket_embed_dim'] = args.basket_embed_dim
 config_param['rnn_units'] = args.rnn_units
 config_param['rnn_layers'] = args.rnn_layers
 config_param['dropout'] = args.dropout
-config_param['w_out'] = args.item_embed_dim # item embedding dim
 config_param['batch_size'] = args.batch_size
 config_param['num_heads'] = args.transformer_head
 config_param['top_k'] = args.top_k
