@@ -1,4 +1,4 @@
-import model
+import model_v2
 import model_utils
 import utils
 import data_utils
@@ -46,7 +46,7 @@ torch.manual_seed(seed)
 config_param={}
 config_param['rnn_units'] = args.rnn_units
 config_param['rnn_layers'] = args.rnn_layers
-# config_param['dropout'] = args.dropout
+config_param['dropout'] = args.dropout
 config_param['w_out'] = args.item_embed_dim # item embedding dim
 config_param['batch_size'] = args.batch_size
 config_param['num_heads'] = args.transformer_head
@@ -94,20 +94,11 @@ exec_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # exec_device = torch.device('cpu')
 data_type = torch.float32
 num_nodes = len(item_dict) + len(user_consumption_dict)
-# X_feature = torch.rand((num_nodes, 16)).to(exec_device)
-X_feature = torch.eye(num_nodes, dtype=data_type, device=exec_device)
-
-# config_param['num_edge'] = 3 # num adj matrix edge type
-# config_param['num_channels'] = 2 # num heads in GTN
-# config_param['rnn_units'] = 4
-# config_param['rnn_layers'] = 1
-config_param['w_in'] = X_feature.shape[1] # node feature dim
-# config_param['w_out'] = 8 # item embedding dim
 config_param['num_class'] = 9984 # number items
 config_param['num_layers'] = 2 # len of metapath in GTN
 norm = True # normalize adj matrix
 
-rec_sys_model = model.GTN(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
+rec_sys_model = model_v2.GTN(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
 rec_sys_model = rec_sys_model.to(exec_device, dtype= data_type)
 
 #### loss and optim ######
@@ -129,14 +120,12 @@ for i, edge in enumerate(edges):
 # edges.clear()
 A = torch.cat([A,torch.eye(num_nodes).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
 
-# X_feature = torch.eye(len(item_dict) + len(user_consumption_dict))
-
 A = A.to(device = exec_device)
 
 print("Device (A, model, X_feature): ")
 print(A[0][0].device)
 print(rec_sys_model.device)
-print(X_feature.device)
+# print(X_feature.device)
 
 ########## train #################
 epoch = 2
@@ -146,7 +135,7 @@ train_losses = []
 train_recalls = []
 
 for ep in range(epoch):
-    rec_sys_model, optimizer, avg_train_loss, avg_train_recall = model_utils.train_model(rec_sys_model, loss_func, optimizer, A, X_feature, train_loader, ep, top_k, train_display_step)
+    rec_sys_model, optimizer, avg_train_loss, avg_train_recall = model_utils.train_model(rec_sys_model, loss_func, optimizer, A, train_loader, ep, top_k, train_display_step)
     train_losses.append(avg_train_loss)
     train_recalls.append(avg_train_recall)
 

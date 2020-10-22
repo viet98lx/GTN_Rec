@@ -2,7 +2,7 @@ import torch
 import time
 import utils
 
-def train_model(model, loss_func, optimizer, A, X_feature, train_loader, epoch, top_k, train_display_step):
+def train_model(model, loss_func, optimizer, A, train_loader, epoch, top_k, train_display_step):
     running_train_loss = 0.0
     running_train_recall = 0.0
     device = model.device
@@ -25,7 +25,7 @@ def train_model(model, loss_func, optimizer, A, X_feature, train_loader, epoch, 
 
         optimizer.zero_grad()  # clear gradients for this training step
 
-        predict = model(A, X_feature, train_seq_len, x_train_batch, hidden)  # predicted output
+        predict = model(A, train_seq_len, x_train_batch, hidden)  # predicted output
         loss = loss_func(predict, target_basket_train)  # WBCE loss
         loss.backward()  # backpropagation, compute gradients
         optimizer.step()  # update gradient
