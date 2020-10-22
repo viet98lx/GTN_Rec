@@ -43,8 +43,9 @@ class GTN(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        nn.init.xavier_uniform_(self.weight)
-        nn.init.zeros_(self.bias)
+        # nn.init.xavier_uniform_(self.weight)
+        # nn.init.zeros_(self.bias)
+        pass
 
     def normalization(self, H):
         for i in range(self.num_channels):
@@ -108,9 +109,9 @@ class GTN(nn.Module):
         item_bias_diag = F.relu(torch.diag(self.I_B))
         for i in range(self.num_channels):
             if i == 0:
-                encode_x_graph = F.relu(torch.mm(reshape_x, item_bias_diag)) + F.relu(torch.mm(reshape_x, H[i]))
+                encode_x_graph = F.relu(torch.mm(reshape_x, item_bias_diag)) + F.relu(torch.mm(reshape_x, H[i][:self.nb_items, :self.nb_items]))
             else:
-                encode_x_term = F.relu(torch.mm(reshape_x, item_bias_diag) + F.relu(torch.mm(reshape_x, H[i])))
+                encode_x_term = F.relu(torch.mm(reshape_x, item_bias_diag) + F.relu(torch.mm(reshape_x, H[i][:self.nb_items, :self.nb_items])))
                 encode_x_graph = torch.cat((encode_x_graph, encode_x_term), dim=1)
 
         encode_x_graph = self.linear1(encode_x_graph)
