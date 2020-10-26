@@ -21,7 +21,7 @@ parser.add_argument('--batch_size', type=int, help='batch size of data set (defa
 parser.add_argument('--rnn_units', type=int, help='number units of hidden size lstm', default=16)
 parser.add_argument('--rnn_layers', type=int, help='number layers of RNN', default=1)
 parser.add_argument('--num_channels', type=int, default=2, help='number of channels')
-# parser.add_argument('--alpha', type=float, help='coefficient of C matrix in predict item score', default=0.4)
+parser.add_argument('--alpha', type=float, help='coefficient item bias in predict item score', default=0.4)
 parser.add_argument('--lr', type=float, help='learning rate of optimizer', default=0.001)
 parser.add_argument('--dropout', type=float, help='drop out after linear model', default= 0.2)
 parser.add_argument('--basket_embed_dim', type=int, help='dimension of linear layers', default=8)

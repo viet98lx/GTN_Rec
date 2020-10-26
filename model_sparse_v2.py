@@ -27,6 +27,7 @@ class GTN(nn.Module):
         self.num_class = config_param['num_class']
         self.num_layers = config_param['num_layers']
         self.batch_size = config_param['batch_size']
+        self.alpha = config_param['alpha']
         self.max_seq_length = max_seq_length
         self.item_probs = item_probs
         self.device = device
@@ -118,10 +119,10 @@ class GTN(nn.Module):
         # print(hidden_to_score)
 
         # predict next items score
-        # next_item_probs = torch.sigmoid(hidden_to_score)
-        next_item_probs = hidden_to_score
-
-        return next_item_probs
+        next_item_probs = torch.sigmoid(hidden_to_score)
+        # next_item_probs = hidden_to_score
+        predict = (1 - self.alpha) * next_item_probs + self.alpha * torch.mm(next_item_probs, item_bias_diag)
+        return predict
 
 
 class GTLayer(nn.Module):
