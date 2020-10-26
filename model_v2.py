@@ -20,6 +20,7 @@ class GTN(nn.Module):
         self.num_class = config_param['num_class']
         self.num_layers = config_param['num_layers']
         self.batch_size = config_param['batch_size']
+        self.alpha = config_param['alpha']
         self.max_seq_length = max_seq_length
         self.item_probs = item_probs
         self.device = device
@@ -34,8 +35,10 @@ class GTN(nn.Module):
             else:
                 layers.append(GTLayer(self.num_edge, self.num_channels, first=False))
         self.layers = nn.ModuleList(layers)
+        self.list_linear = nn.ModuleList([nn.Linear(self.nb_items, self.basket_embed_dim) for i in range(self.num_channels)])
         self.lstm = nn.LSTM(self.basket_embed_dim, self.rnn_units, self.rnn_layers, bias=True, batch_first=True)
-        self.linear1 = nn.Linear(self.basket_embed_dim * self.num_channels, self.basket_embed_dim)
+        self.project_embed = nn.Linear(self.basket_embed_dim * self.num_channels, self.basket_embed_dim)
+        # self.linear1 = nn.Linear(self.basket_embed_dim * self.num_channels, self.basket_embed_dim)
         self.h2item_score = nn.Linear(in_features=self.rnn_units, out_features=self.nb_items, bias=False)
         # self.linear2 = nn.Linear(self.w_out, self.num_class)
         item_bias = torch.ones(self.nb_items) / self.nb_items
@@ -96,25 +99,21 @@ class GTN(nn.Module):
         # H = self.normalization(H)
         # H,W3 = self.layer3(A, H)
 
-        # GCN on graph
-        # for i in range(self.num_channels):
-        #     if i == 0:
-        #         X_ = F.relu(self.gcn_conv(X, H[i]))
-        #     else:
-        #         X_tmp = F.relu(self.gcn_conv(X, H[i]))
-        #         X_ = torch.cat((X_, X_tmp), dim=1)
-
         reshape_x = seqs.reshape(-1, self.nb_items)
         item_bias_diag = F.relu(torch.diag(self.I_B))
         for i in range(self.num_channels):
             if i == 0:
-                encode_x_graph = F.relu(torch.mm(reshape_x, item_bias_diag)) + F.relu(torch.mm(reshape_x, H[i][:self.nb_items, :self.nb_items]))
+                encode_x_graph = F.relu(torch.mm(reshape_x, item_bias_diag)) + F.relu(
+                    torch.mm(reshape_x, H[i][:self.nb_items, :self.nb_items]))
+                encode_basket = self.list_linear[i](encode_x_graph)
             else:
-                encode_x_term = F.relu(torch.mm(reshape_x, item_bias_diag) + F.relu(torch.mm(reshape_x, H[i][:self.nb_items, :self.nb_items])))
-                encode_x_graph = torch.cat((encode_x_graph, encode_x_term), dim=1)
+                encode_x_graph = F.relu(torch.mm(reshape_x, item_bias_diag) + F.relu(
+                    torch.mm(reshape_x, H[i][:self.nb_items, :self.nb_items])))
+                encode_basket_term = self.list_linear[i](encode_x_graph)
+                encode_basket = torch.cat((encode_basket, encode_basket_term), dim=1)
 
-        encode_x_graph = self.linear1(encode_x_graph)
-        basket_x = encode_x_graph.reshape(-1, self.max_seq_length, self.nb_items)
+        combine_encode_basket = self.project_embed(encode_basket)
+        basket_x = combine_encode_basket.reshape(-1, self.max_seq_length, self.nb_items)
         basket_encoder = F.dropout(F.relu(self.fc_basket_encoder_1(basket_x)), p=0.2)
 
         lstm_out, (h_n, c_n) = self.lstm(basket_encoder, hidden)
@@ -126,10 +125,9 @@ class GTN(nn.Module):
 
         # predict next items score
         next_item_probs = torch.sigmoid(hidden_to_score)
-
-        # loss = self.loss(next_item_probs, target_basket)
-        # return loss, target_basket, Ws
-        return next_item_probs
+        # next_item_probs = hidden_to_score
+        predict = (1 - self.alpha) * next_item_probs + self.alpha * torch.mm(next_item_probs, item_bias_diag)
+        return predict
 
 class GTLayer(nn.Module):
 

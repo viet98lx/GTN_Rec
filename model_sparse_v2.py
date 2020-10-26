@@ -49,7 +49,7 @@ class GTN(nn.Module):
         # self.linear2 = nn.Linear(self.w_out, self.num_class)
         item_bias = torch.ones(self.nb_items) / self.nb_items
         self.I_B = nn.Parameter(data=item_bias.type(d_type))
-        self.reset_parameters()
+        # self.reset_parameters()
 
     def normalization(self, H):
         norm_H = []
