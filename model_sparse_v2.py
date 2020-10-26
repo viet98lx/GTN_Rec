@@ -2,9 +2,16 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+# import torch.nn.parameter as Parameter
 import math
 from matplotlib import pyplot as plt
 import pdb
+from torch_geometric.utils import dense_to_sparse, f1_score
+from gcn import GCNConv
+from torch_scatter import scatter_add
+import torch_sparse
+from torch_geometric.utils.num_nodes import maybe_num_nodes
+from torch_geometric.utils import remove_self_loops, add_self_loops
 import utils
 
 
@@ -34,41 +41,39 @@ class GTN(nn.Module):
             else:
                 layers.append(GTLayer(self.num_edge, self.num_channels, first=False))
         self.layers = nn.ModuleList(layers)
+        self.list_linear = nn.ModuleList([nn.Linear(self.nb_items, self.basket_embed_dim) for i in range(self.num_channels)])
         self.lstm = nn.LSTM(self.basket_embed_dim, self.rnn_units, self.rnn_layers, bias=True, batch_first=True)
-        self.linear1 = nn.Linear(self.basket_embed_dim * self.num_channels, self.basket_embed_dim)
+        self.project_embed = nn.Linear(self.basket_embed_dim * self.num_channels, self.basket_embed_dim)
         self.h2item_score = nn.Linear(in_features=self.rnn_units, out_features=self.nb_items, bias=False)
         # self.linear2 = nn.Linear(self.w_out, self.num_class)
         item_bias = torch.ones(self.nb_items) / self.nb_items
         self.I_B = nn.Parameter(data=item_bias.type(d_type))
         self.reset_parameters()
 
-    def reset_parameters(self):
-        # nn.init.xavier_uniform_(self.weight)
-        # nn.init.zeros_(self.bias)
-        pass
-
     def normalization(self, H):
+        norm_H = []
         for i in range(self.num_channels):
-            if i == 0:
-                H_ = self.norm(H[i, :, :]).unsqueeze(0)
-            else:
-                H_ = torch.cat((H_, self.norm(H[i, :, :]).unsqueeze(0)), dim=0)
-        return H_
+            edge, value = H[i]
+            edge, value = remove_self_loops(edge, value)
+            deg_row, deg_col = self.norm(edge.detach(), self.num_nodes, value.detach())
+            value = deg_col * value
+            norm_H.append((edge, value))
+        return norm_H
 
-    def norm(self, H, add=False):
-        H = H.t()
-        if add == False:
-            H = H * ((torch.eye(H.shape[0]) == 0).type(torch.FloatTensor).to(self.device))
-        else:
-            H = H * ((torch.eye(H.shape[0]) == 0).type(torch.FloatTensor).to(self.device)) + torch.eye(H.shape[0]).type(
-                torch.FloatTensor).to(self.device)
-        deg = torch.sum(H, dim=1)
-        deg_inv = deg.pow(-1)
-        deg_inv[deg_inv == float('inf')] = 0
-        deg_inv = deg_inv * (torch.eye(H.shape[0]).type(torch.FloatTensor).to(self.device))
-        H = torch.mm(deg_inv, H)
-        H = H.t()
-        return H
+    def norm(self, edge_index, num_nodes, edge_weight, improved=False, dtype=None):
+        with torch.no_grad():
+            if edge_weight is None:
+                edge_weight = torch.ones((edge_index.size(1),),
+                                         dtype=dtype,
+                                         device=edge_index.device)
+            edge_weight = edge_weight.view(-1)
+            assert edge_weight.size(0) == edge_index.size(1)
+            row, col = edge_index
+            deg = scatter_add(edge_weight, col, dim=0, dim_size=num_nodes)
+            deg_inv_sqrt = deg.pow(-1)
+            deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+
+        return deg_inv_sqrt[row], deg_inv_sqrt[col]
 
     def init_hidden(self, batch_size):
         # Before we've done anything, we dont have any hidden state.
@@ -79,8 +84,6 @@ class GTN(nn.Module):
 
     def forward(self, A, seq_len, seqs, hidden):
         batch_size = seqs.shape[0]
-        # Learn new structure graph by combine adjacency matrices
-        A = A.unsqueeze(0).permute(0, 3, 1, 2)
         Ws = []
         for i in range(self.num_layers):
             if i == 0:
@@ -90,31 +93,21 @@ class GTN(nn.Module):
                 H, W = self.layers[i](A, H)
             Ws.append(W)
 
-        # H,W1 = self.layer1(A)
-        # H = self.normalization(H)
-        # H,W2 = self.layer2(A, H)
-        # H = self.normalization(H)
-        # H,W3 = self.layer3(A, H)
-
-        # GCN on graph
-        # for i in range(self.num_channels):
-        #     if i == 0:
-        #         X_ = F.relu(self.gcn_conv(X, H[i]))
-        #     else:
-        #         X_tmp = F.relu(self.gcn_conv(X, H[i]))
-        #         X_ = torch.cat((X_, X_tmp), dim=1)
-
         reshape_x = seqs.reshape(-1, self.nb_items)
         item_bias_diag = F.relu(torch.diag(self.I_B))
         for i in range(self.num_channels):
             if i == 0:
-                encode_x_graph = F.relu(torch.mm(reshape_x, item_bias_diag)) + F.relu(torch.mm(reshape_x, H[i][:self.nb_items, :self.nb_items]))
+                encode_x_graph = F.relu(torch.mm(reshape_x, item_bias_diag)) + F.relu(
+                    torch.mm(reshape_x, H[i][:self.nb_items, :self.nb_items]))
+                encode_basket = self.list_linear[i](encode_x_graph)
             else:
-                encode_x_term = F.relu(torch.mm(reshape_x, item_bias_diag) + F.relu(torch.mm(reshape_x, H[i][:self.nb_items, :self.nb_items])))
-                encode_x_graph = torch.cat((encode_x_graph, encode_x_term), dim=1)
+                encode_x_graph = F.relu(torch.mm(reshape_x, item_bias_diag) + F.relu(
+                    torch.mm(reshape_x, H[i][:self.nb_items, :self.nb_items])))
+                encode_basket_term = self.list_linear[i](encode_x_graph)
+                encode_basket = torch.cat((encode_basket, encode_basket_term), dim=1)
 
-        encode_x_graph = self.linear1(encode_x_graph)
-        basket_x = encode_x_graph.reshape(-1, self.max_seq_length, self.nb_items)
+        combine_encode_basket = self.project_embed(encode_basket)
+        basket_x = combine_encode_basket.reshape(-1, self.max_seq_length, self.nb_items)
         basket_encoder = F.dropout(F.relu(self.fc_basket_encoder_1(basket_x)), p=0.2)
 
         lstm_out, (h_n, c_n) = self.lstm(basket_encoder, hidden)
@@ -125,57 +118,79 @@ class GTN(nn.Module):
         # print(hidden_to_score)
 
         # predict next items score
-        next_item_probs = torch.sigmoid(hidden_to_score)
+        # next_item_probs = torch.sigmoid(hidden_to_score)
+        next_item_probs = hidden_to_score
 
-        # loss = self.loss(next_item_probs, target_basket)
-        # return loss, target_basket, Ws
         return next_item_probs
+
 
 class GTLayer(nn.Module):
 
-    def __init__(self, in_channels, out_channels, first=True):
+    def __init__(self, in_channels, out_channels, num_nodes, first=True):
         super(GTLayer, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.first = first
+        self.num_nodes = num_nodes
         if self.first == True:
-            self.conv1 = GTConv(in_channels, out_channels)
-            self.conv2 = GTConv(in_channels, out_channels)
+            self.conv1 = GTConv(in_channels, out_channels, num_nodes)
+            self.conv2 = GTConv(in_channels, out_channels, num_nodes)
         else:
-            self.conv1 = GTConv(in_channels, out_channels)
+            self.conv1 = GTConv(in_channels, out_channels, num_nodes)
 
     def forward(self, A, H_=None):
         if self.first == True:
-            a = self.conv1(A)
-            b = self.conv2(A)
-            H = torch.bmm(a, b)
+            result_A = self.conv1(A)
+            result_B = self.conv2(A)
             W = [(F.softmax(self.conv1.weight, dim=1)).detach(), (F.softmax(self.conv2.weight, dim=1)).detach()]
         else:
-            a = self.conv1(A)
-            H = torch.bmm(H_, a)
+            result_A = H_
+            result_B = self.conv1(A)
             W = [(F.softmax(self.conv1.weight, dim=1)).detach()]
+        H = []
+        for i in range(len(result_A)):
+            a_edge, a_value = result_A[i]
+            b_edge, b_value = result_B[i]
+
+            edges, values = torch_sparse.spspmm(a_edge, a_value, b_edge, b_value, self.num_nodes, self.num_nodes,
+                                                self.num_nodes)
+            H.append((edges, values))
         return H, W
 
 
 class GTConv(nn.Module):
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, num_nodes):
         super(GTConv, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.weight = nn.Parameter(torch.Tensor(out_channels, in_channels, 1, 1))
+        self.weight = nn.Parameter(torch.Tensor(out_channels, in_channels))
         self.bias = None
         self.scale = nn.Parameter(torch.Tensor([0.1]), requires_grad=False)
+        self.num_nodes = num_nodes
         self.reset_parameters()
 
     def reset_parameters(self):
         n = self.in_channels
-        nn.init.constant_(self.weight, 0.1)
+        nn.init.constant_(self.weight, 1)
         if self.bias is not None:
             fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
             bound = 1 / math.sqrt(fan_in)
             nn.init.uniform_(self.bias, -bound, bound)
 
     def forward(self, A):
-        A = torch.sum(A * F.softmax(self.weight, dim=1), dim=1)
-        return A
+        filter = F.softmax(self.weight, dim=1)
+        num_channels = filter.shape[0]
+        results = []
+        for i in range(num_channels):
+            for j, (edge_index, edge_value) in enumerate(A):
+                if j == 0:
+                    total_edge_index = edge_index
+                    total_edge_value = edge_value * filter[i][j]
+                else:
+                    total_edge_index = torch.cat((total_edge_index, edge_index), dim=1)
+                    total_edge_value = torch.cat((total_edge_value, edge_value * filter[i][j]))
+            index, value = torch_sparse.coalesce(total_edge_index.detach(), total_edge_value, m=self.num_nodes,
+                                                 n=self.num_nodes)
+            results.append((index, value))
+        return results
