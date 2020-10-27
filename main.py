@@ -85,8 +85,8 @@ MAX_SEQ_LENGTH, item_dict, reversed_item_dict, item_probs, user_consumption_dict
 config_param = dict()
 config_param['batch_size'] = 16
 print('---------------------Create data loader--------------------')
-train_loader = data_utils.generate_data_loader(train_instances[:1000], config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=True)
-valid_loader = data_utils.generate_data_loader(valid_instances[:500], config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=False)
+train_loader = data_utils.generate_data_loader(train_instances, config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=True)
+valid_loader = data_utils.generate_data_loader(valid_instances, config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=False)
 test_loader = data_utils.generate_data_loader(test_instances, config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=False)
 
 ### init model ####
