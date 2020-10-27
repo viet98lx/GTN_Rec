@@ -105,16 +105,16 @@ class GTN(nn.Module):
             if i == 0:
                 encode_x_graph = F.relu(torch.mm(reshape_x, item_bias_diag)) + F.relu(
                     torch.mm(reshape_x, H[i][:self.nb_items, :self.nb_items]))
-                encode_basket = self.list_linear[i](encode_x_graph)
+                encode_basket = F.relu(self.list_linear[i](encode_x_graph))
             else:
                 encode_x_graph = F.relu(torch.mm(reshape_x, item_bias_diag) + F.relu(
                     torch.mm(reshape_x, H[i][:self.nb_items, :self.nb_items])))
-                encode_basket_term = self.list_linear[i](encode_x_graph)
+                encode_basket_term = F.relu(self.list_linear[i](encode_x_graph))
                 encode_basket = torch.cat((encode_basket, encode_basket_term), dim=1)
 
-        combine_encode_basket = self.project_embed(encode_basket)
-        basket_x = combine_encode_basket.reshape(-1, self.max_seq_length, self.basket_embed_dim)
-        basket_encoder = F.dropout(F.relu(self.fc_basket_encoder_1(basket_x)), p=0.2)
+        combine_encode_basket = F.relu(self.project_embed(encode_basket))
+        basket_encoder = combine_encode_basket.reshape(-1, self.max_seq_length, self.basket_embed_dim)
+        # basket_encoder = F.dropout(F.relu(self.fc_basket_encoder_1(basket_x)), p=0.2)
 
         lstm_out, (h_n, c_n) = self.lstm(basket_encoder, hidden)
         actual_index = torch.arange(0, batch_size) * self.max_seq_length + (seq_len - 1)
