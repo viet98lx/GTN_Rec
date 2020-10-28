@@ -42,9 +42,11 @@ class GTN(nn.Module):
             else:
                 layers.append(GTLayer(self.num_edge, self.num_channels, first=False))
         self.layers = nn.ModuleList(layers)
-        self.list_linear = nn.ModuleList([nn.Linear(self.nb_items, self.basket_embed_dim) for i in range(self.num_channels)])
+        self.list_linear = nn.ModuleList(
+            [nn.Linear(self.nb_items, self.basket_embed_dim) for i in range(self.num_channels)])
         self.lstm = nn.LSTM(self.basket_embed_dim, self.rnn_units, self.rnn_layers, bias=True, batch_first=True)
         self.project_embed = nn.Linear(self.basket_embed_dim * self.num_channels, self.basket_embed_dim)
+        # self.linear1 = nn.Linear(self.basket_embed_dim * self.num_channels, self.basket_embed_dim)
         self.h2item_score = nn.Linear(in_features=self.rnn_units, out_features=self.nb_items, bias=False)
         # self.linear2 = nn.Linear(self.w_out, self.num_class)
         item_bias = torch.ones(self.nb_items) / self.nb_items
@@ -108,8 +110,8 @@ class GTN(nn.Module):
                 encode_basket = torch.cat((encode_basket, encode_basket_term), dim=1)
 
         combine_encode_basket = self.project_embed(encode_basket)
-        basket_x = combine_encode_basket.reshape(-1, self.max_seq_length, self.nb_items)
-        basket_encoder = F.dropout(F.relu(self.fc_basket_encoder_1(basket_x)), p=0.2)
+        basket_encoder = combine_encode_basket.reshape(-1, self.max_seq_length, self.basket_embed_dim)
+        # basket_encoder = F.dropout(F.relu(self.fc_basket_encoder_1(basket_x)), p=0.2)
 
         lstm_out, (h_n, c_n) = self.lstm(basket_encoder, hidden)
         actual_index = torch.arange(0, batch_size) * self.max_seq_length + (seq_len - 1)
