@@ -91,7 +91,7 @@ class GTN(nn.Module):
             if i == 0:
                 H, W = self.layers[i](A)
             else:
-                H = self.normalization(H)
+                # H = self.normalization(H)
                 H, W = self.layers[i](A, H)
             Ws.append(W)
 
