@@ -249,7 +249,7 @@ config_param['num_edge'] = len(edges) + 1
 print("Num edges: ")
 print(config_param['num_edge'])
 
-A = A.to(device = exec_device)
+A = A.to(device = exec_device, dtype = data_type)
 
 
 rec_sys_model = model_v2.GTN(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
