@@ -215,7 +215,6 @@ print(nb_test)
 print("---------------------@Build knowledge-------------------------------")
 MAX_SEQ_LENGTH, item_dict, reversed_item_dict, item_probs, user_consumption_dict = utils.build_knowledge(train_instances, valid_instances, test_instances)
 
-config_param = dict()
 print('---------------------Create data loader--------------------')
 train_loader = data_utils.generate_data_loader(train_instances, config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=True)
 valid_loader = data_utils.generate_data_loader(valid_instances, config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=False)
