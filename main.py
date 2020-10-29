@@ -147,7 +147,7 @@ def test_model(model, loss_func, test_loader, epoch, top_k, test_display_step):
 torch.set_printoptions(precision=8)
 parser = argparse.ArgumentParser(description='Train model')
 
-parser.add_argument('--batch_size', type=int, help='batch size of data set (default:32)', default=16)
+parser.add_argument('--batch_size', type=int, help='batch size of data set (default:16)', default=16)
 parser.add_argument('--rnn_units', type=int, help='number units of hidden size lstm', default=16)
 parser.add_argument('--rnn_layers', type=int, help='number layers of RNN', default=1)
 parser.add_argument('--num_gtn_layers', type=int, help='number layers of GTN', default=1)
