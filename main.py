@@ -189,7 +189,7 @@ config_param['num_layers'] = args.num_gtn_layers # len of metapath in GTN
 
 data_dir = args.data_dir
 output_dir = args.output_dir
-nb_hop = args.nb_hop
+# nb_hop = args.nb_hop
 
 torch.manual_seed(1)
 np.random.seed(2)
@@ -253,6 +253,8 @@ for i, edge in enumerate(edges):
 A = torch.cat([A,torch.eye(num_nodes).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
 
 config_param['num_edge'] = A.shape()[0]
+print("Num edges: ")
+print(config_param['num_edge'])
 
 A = A.to(device = exec_device)
 
