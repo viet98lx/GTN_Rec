@@ -185,6 +185,8 @@ config_param['top_k'] = args.top_k
 config_param['alpha'] = args.alpha
 config_param['num_edge'] = args.num_edge  # num adj matrix edge type
 config_param['num_channels'] = args.num_channels # num heads in GTN
+config_param['num_layers'] = args.num_gtn_layers # len of metapath in GTN
+
 data_dir = args.data_dir
 output_dir = args.output_dir
 nb_hop = args.nb_hop
@@ -214,7 +216,6 @@ print("---------------------@Build knowledge-------------------------------")
 MAX_SEQ_LENGTH, item_dict, reversed_item_dict, item_probs, user_consumption_dict = utils.build_knowledge(train_instances, valid_instances, test_instances)
 
 config_param = dict()
-config_param['batch_size'] = 16
 print('---------------------Create data loader--------------------')
 train_loader = data_utils.generate_data_loader(train_instances, config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=True)
 valid_loader = data_utils.generate_data_loader(valid_instances, config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=False)
@@ -226,7 +227,7 @@ exec_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 data_type = torch.float16
 num_nodes = len(item_dict) + len(user_consumption_dict)
 config_param['num_class'] = len(item_dict) # number items
-config_param['num_layers'] = args.num_gtn_layers # len of metapath in GTN
+
 norm = True # normalize adj matrix
 
 rec_sys_model = model_v2.GTN(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
