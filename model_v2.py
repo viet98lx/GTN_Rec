@@ -63,14 +63,14 @@ class GTN(nn.Module):
     def norm(self, H, add=False):
         H = H.t()
         if add == False:
-            H = H * ((torch.eye(H.shape[0]) == 0).type(torch.FloatTensor).to(self.device))
+            H = H * ((torch.eye(H.shape[0]) == 0).type(torch.FloatTensor).to(device = self.device, dtype = self.dtype))
         else:
-            H = H * ((torch.eye(H.shape[0]) == 0).type(torch.FloatTensor).to(self.device)) + torch.eye(H.shape[0]).type(
-                torch.FloatTensor).to(self.device)
+            H = H * ((torch.eye(H.shape[0]) == 0).type(torch.FloatTensor).to(device = self.device, dtype = self.dtype)) + torch.eye(H.shape[0]).type(
+                torch.FloatTensor).to(device = self.device, dtype = self.dtype)
         deg = torch.sum(H, dim=1)
         deg_inv = deg.pow(-1)
         deg_inv[deg_inv == float('inf')] = 0
-        deg_inv = deg_inv * (torch.eye(H.shape[0]).type(torch.FloatTensor).to(self.device))
+        deg_inv = deg_inv * (torch.eye(H.shape[0]).type(torch.FloatTensor).to(device = self.device, dtype = self.dtype))
         H = torch.mm(deg_inv, H)
         H = H.t()
         return H

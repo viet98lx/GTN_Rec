@@ -58,7 +58,7 @@ class GTN(nn.Module):
         for i in range(self.num_channels):
             edge, value = H[i]
             edge, value = remove_self_loops(edge, value)
-            deg_row, deg_col = self.norm(edge.detach(), self.num_nodes, value.detach())
+            deg_row, deg_col = self.norm(edge.detach(), self.num_nodes, value.detach(),dtype= self.dtype)
             value = deg_col * value
             norm_H.append((edge, value))
         return norm_H
