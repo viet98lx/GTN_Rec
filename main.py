@@ -229,12 +229,6 @@ config_param['num_class'] = len(item_dict) # number items
 
 norm = True # normalize adj matrix
 
-rec_sys_model = model_v2.GTN(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
-rec_sys_model = rec_sys_model.to(exec_device, dtype= data_type)
-
-#### loss and optim ######
-loss_func = loss.Weighted_BCE_Loss()
-optimizer = torch.optim.Adam(rec_sys_model.parameters(), lr=0.005)
 edges = []
 i_i_adj = sp.load_npz(data_dir + 'adj_matrix/i_vs_i_sparse.npz')
 edges.append(i_i_adj)
@@ -256,6 +250,14 @@ print("Num edges: ")
 print(config_param['num_edge'])
 
 A = A.to(device = exec_device)
+
+
+rec_sys_model = model_v2.GTN(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
+rec_sys_model = rec_sys_model.to(exec_device, dtype= data_type)
+
+#### loss and optim ######
+loss_func = loss.Weighted_BCE_Loss()
+optimizer = torch.optim.Adam(rec_sys_model.parameters(), lr=0.005)
 
 print("Device (A, model, X_feature): ")
 print(A[0][0].device)
