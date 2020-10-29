@@ -245,7 +245,7 @@ for i, edge in enumerate(edges):
 # edges.clear()
 A = torch.cat([A,torch.eye(num_nodes).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
 
-config_param['num_edge'] = A.shape[0]
+config_param['num_edge'] = len(edges) + 1
 print("Num edges: ")
 print(config_param['num_edge'])
 
