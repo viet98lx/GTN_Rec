@@ -183,7 +183,7 @@ config_param['batch_size'] = args.batch_size
 # config_param['num_heads'] = args.transformer_head
 config_param['top_k'] = args.top_k
 config_param['alpha'] = args.alpha
-config_param['num_edge'] = args.num_edge  # num adj matrix edge type
+# config_param['num_edge'] = args.num_edge  # num adj matrix edge type
 config_param['num_channels'] = args.num_channels # num heads in GTN
 config_param['num_layers'] = args.num_gtn_layers # len of metapath in GTN
 
@@ -251,6 +251,8 @@ for i, edge in enumerate(edges):
 
 # edges.clear()
 A = torch.cat([A,torch.eye(num_nodes).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
+
+config_param['num_edge'] = A.shape()[0]
 
 A = A.to(device = exec_device)
 
