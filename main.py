@@ -161,7 +161,7 @@ parser.add_argument('--basket_embed_dim', type=int, help='dimension of linear la
 # parser.add_argument('--transformer_head', type=int, help='number heads of transformer layers', default=2)
 parser.add_argument('--device', type=str, help='device for train and predict', default='cpu')
 parser.add_argument('--top_k', type=int, help='top k predict', default=10)
-# parser.add_argument('--nb_hop', type=int, help='level of correlation matrix', default=1)
+parser.add_argument('--num_edges', type=int, help='number of adj matrix', default=2)
 parser.add_argument('--epoch', type=int, help='epoch to train', default=30)
 parser.add_argument('--epsilon', type=float, help='different between loss of two consecutive epoch ', default=0.00000001)
 parser.add_argument('--model_name', type=str, help='name of model', required=True)
@@ -230,10 +230,14 @@ config_param['num_class'] = len(item_dict) # number items
 norm = True # normalize adj matrix
 
 edges = []
-i_i_adj = sp.load_npz(data_dir + 'adj_matrix/i_vs_i_sparse.npz')
-edges.append(i_i_adj)
-u_i_adj = sp.load_npz(data_dir + 'adj_matrix/u_vs_i_sparse.npz')
-edges.append(u_i_adj)
+# i_i_adj = sp.load_npz(data_dir + 'adj_matrix/i_vs_i_sparse.npz')
+# edges.append(i_i_adj)
+# u_i_adj = sp.load_npz(data_dir + 'adj_matrix/u_vs_i_sparse.npz')
+# edges.append(u_i_adj)
+
+for i in range(args.num_edges):
+    adj_matrix = sp.load_npz(data_dir + 'adj_matrix/r_matrix_' + i + 'w.npz')
+    edges.append(adj_matrix)
 
 ############### Dense version ##########################
 for i, edge in enumerate(edges):
@@ -245,7 +249,7 @@ for i, edge in enumerate(edges):
 # edges.clear()
 A = torch.cat([A,torch.eye(num_nodes).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
 
-config_param['num_edge'] = len(edges) + 1
+config_param['num_edge'] = args.num_edges
 print("Num edges: ")
 print(config_param['num_edge'])
 
@@ -268,20 +272,26 @@ print(rec_sys_model.device)
 epoch = 2
 top_k = 10
 train_display_step = 300
+val_display_step = 100
+test_display_step = 30
 train_losses = []
 train_recalls = []
+val_losses = []
+val_recalls = []
+test_losses = []
+test_recalls = []
 
 for ep in range(epoch):
     avg_train_loss, avg_train_recall = train_model(rec_sys_model, loss_func, optimizer, A, train_loader, ep, top_k, train_display_step)
     train_losses.append(avg_train_loss)
     train_recalls.append(avg_train_recall)
 
-    # avg_val_loss, avg_val_recall = validate_model(rec_sys_model, loss_func, valid_loader,
-    #                                                           ep, top_k, val_display_step)
-    # val_losses.append(avg_val_loss)
-    # val_recalls.append(avg_val_recall)
+    avg_val_loss, avg_val_recall = validate_model(rec_sys_model, loss_func, valid_loader,
+                                                              ep, top_k, val_display_step)
+    val_losses.append(avg_val_loss)
+    val_recalls.append(avg_val_recall)
 
-    # avg_test_loss, avg_test_recall = test_model(rec_sys_model, loss_func, test_loader,
-    #                                                         ep, top_k, test_display_step)
-    # test_losses.append(avg_test_loss)
-    # test_recalls.append(avg_test_recall)
+    avg_test_loss, avg_test_recall = test_model(rec_sys_model, loss_func, test_loader,
+                                                            ep, top_k, test_display_step)
+    test_losses.append(avg_test_loss)
+    test_recalls.append(avg_test_recall)
