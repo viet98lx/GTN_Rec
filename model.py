@@ -6,7 +6,7 @@ import math
 from matplotlib import pyplot as plt
 import pdb
 import utils
-import GTN
+import gtn
 
 
 class GTN_Rec(nn.Module):
@@ -36,7 +36,7 @@ class GTN_Rec(nn.Module):
         #     else:
         #         layers.append(GTLayer(self.num_edge, self.num_channels, first=False))
         # self.layers = nn.ModuleList(layers)
-        self.gtn = GTN.GTLayer(self.num_edge, self.num_channels, first=True)
+        self.gtn = gtn.GTLayer(self.num_edge, self.num_channels, first=True)
         self.list_linear = nn.ModuleList([nn.Linear(self.nb_items, self.basket_embed_dim) for i in range(self.num_channels)])
         self.lstm = nn.LSTM(self.basket_embed_dim, self.rnn_units, self.rnn_layers, bias=True, batch_first=True)
         self.project_embed = nn.Linear(self.basket_embed_dim * self.num_channels, self.basket_embed_dim)
