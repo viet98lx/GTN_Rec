@@ -65,14 +65,8 @@ class GTN_Rec(nn.Module):
         batch_size = seqs.shape[0]
         # Learn new structure graph by combine adjacency matrices
         A = A.unsqueeze(0).permute(0, 3, 1, 2).contiguous()
-        Ws = []
-        for i in range(self.num_layers):
-            if i == 0:
-                H, W = self.layers[i](A)
-            else:
-                # H = self.normalization(H)
-                H, W = self.layers[i](A, H)
-            Ws.append(W)
+        # Ws = []
+        H, W = self.gtn(A)
 
         # H,W1 = self.layer1(A)
         # H = self.normalization(H)

@@ -1,4 +1,4 @@
-import model_v2
+import model
 import utils
 import data_utils
 import loss
@@ -156,9 +156,6 @@ parser.add_argument('--alpha', type=float, help='coefficient item bias in predic
 parser.add_argument('--lr', type=float, help='learning rate of optimizer', default=0.001)
 parser.add_argument('--dropout', type=float, help='drop out after linear model', default= 0.2)
 parser.add_argument('--basket_embed_dim', type=int, help='dimension of linear layers', default=8)
-# parser.add_argument('--embed_dim_transformer', type=int, help='dimension of transformer project layers', default=8)
-# parser.add_argument('--transformer_layers', type=int, help='number transformer layers', default=1)
-# parser.add_argument('--transformer_head', type=int, help='number heads of transformer layers', default=2)
 parser.add_argument('--device', type=str, help='device for train and predict', default='cpu')
 parser.add_argument('--top_k', type=int, help='top k predict', default=10)
 parser.add_argument('--num_edges', type=int, help='number of adj matrix', default=2)
@@ -191,9 +188,9 @@ data_dir = args.data_dir
 output_dir = args.output_dir
 # nb_hop = args.nb_hop
 
-torch.manual_seed(1)
-np.random.seed(2)
-random.seed(3)
+torch.manual_seed(0)
+np.random.seed(0)
+random.seed(0)
 
 train_data_path = data_dir + 'train.txt'
 train_instances = utils.read_instances_lines_from_file(train_data_path)
@@ -256,7 +253,7 @@ print(config_param['num_edge'])
 A = A.to(device = exec_device, dtype = data_type)
 
 
-rec_sys_model = model_v2.GTN(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
+rec_sys_model = model.GTN_Rec(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
 rec_sys_model = rec_sys_model.to(exec_device, dtype= data_type)
 
 #### loss and optim ######
