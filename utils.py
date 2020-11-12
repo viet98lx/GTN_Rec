@@ -218,10 +218,13 @@ def compute_recall_at_top_k(model, logits, top_k, target_basket, batch_size, dev
     correct_predict = predict_basket * target_basket
     nb_correct = (correct_predict == 1.0).sum(dim=-1)
     actual_basket_size = (target_basket == 1.0).sum(dim=-1)
+    batch_recall = nb_correct.type(logits.dtype) / actual_basket_size.type(logits.dtype)
+    batch_precision = nb_correct.type(logits.dtype) / top_k
+    batch_f1 = (2 * (batch_precision * batch_recall)) / (batch_precision + batch_recall)
     # print(nb_correct)
     # print(actual_basket_size)
 
-    return torch.mean(nb_correct.type(logits.dtype) / actual_basket_size.type(logits.dtype)).item()
+    return torch.mean(batch_recall).item(), torch.mean(batch_precision).item(), torch.mean(batch_f1).item()
 
 def plot_loss(train_losses, val_losses, images_dir):
     with plt.style.context('seaborn-dark'):
