@@ -220,7 +220,10 @@ def compute_recall_at_top_k(model, logits, top_k, target_basket, batch_size, dev
     actual_basket_size = (target_basket == 1.0).sum(dim=-1)
     batch_recall = nb_correct.type(logits.dtype) / actual_basket_size.type(logits.dtype)
     batch_precision = nb_correct.type(logits.dtype) / top_k
-    batch_f1 = (2 * (batch_precision * batch_recall)) / (batch_precision + batch_recall)
+    batch_f1 = torch.zeros_like(batch_recall)
+    for i in range(batch_f1.size[0]):
+        if (nb_correct[i] > 0):
+            batch_f1[i] = (2 * (batch_precision[i] * batch_recall[i])) / (batch_precision[i] + batch_recall[i])
     # print(nb_correct)
     # print(actual_basket_size)
 
