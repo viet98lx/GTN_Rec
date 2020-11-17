@@ -30,6 +30,7 @@ def save_ckpt(state, is_best, prefix_name, checkpoint_dir, best_model_dir, epoch
     f_path = path + '/' + prefix_name + '_checkpoint.pt'
     # save checkpoint data to the path given, checkpoint_path
     torch.save(state, f_path)
+    print("Save checkpoint successfully at: " + f_path)
     # if it is a best model, min validation loss
     if is_best:
         best_ckpt = os.path.join(best_model_dir, prefix_name)
