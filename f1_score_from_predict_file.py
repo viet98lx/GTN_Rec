@@ -30,12 +30,6 @@ with open(result_file, 'r') as f:
 list_recall = []
 list_precision = []
 list_f1 = []
-# print("list seq:")
-# print(list_seq)
-# print(len(list_seq))
-# print("list predicted items")
-# print(list_seq_topk_predicted)
-# print(len(list_seq_topk_predicted))
 for i, ground_truth in enumerate(list_seq):
   correct = 0
   # print(i)
@@ -51,12 +45,12 @@ for i, ground_truth in enumerate(list_seq):
   else:
       f1_score = 2*recall_score*precision_score/(recall_score + precision_score)
   list_f1.append(f1_score)
-print("Len of recall: %d" % len(list_recall))
-print("Len of precision: %d " % len(list_precision))
-print("Len of F1-score: %d " % len(list_f1))
-print("Number zeros: %d" % list_recall.count(0))
-print("Number zeros: %d" % list_precision.count(0))
-print("Number zeros: %d" % list_f1.count(0))
+# print("Len of recall: %d" % len(list_recall))
+# print("Len of precision: %d " % len(list_precision))
+# print("Len of F1-score: %d " % len(list_f1))
+# print("Number zeros: %d" % list_recall.count(0))
+# print("Number zeros: %d" % list_precision.count(0))
+# print("Number zeros: %d" % list_f1.count(0))
 print("Recall@%d : %.6f" % (top_k, np.array(list_recall).mean()))
 print("Precision@%d : %.6f" % (top_k, np.array(list_precision).mean()))
 print("F1-score@%d : %.6f" % (top_k, np.array(list_f1).mean()))
