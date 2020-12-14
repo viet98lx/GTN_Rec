@@ -27,7 +27,7 @@ def F1_matrix_score_for_data(model, A, data_loader, batch_size, top_k):
             hidden = model.init_hidden(real_batch_size)
             y_ = data_y.to(dtype=model.dtype, device=device)
             logits_ = model(A, data_seq_len, x_, hidden)
-            predict_basket = utils.predict_top_k(logits_, top_k, batch_size, device, model.nb_items)
+            predict_basket = utils.predict_top_k(logits_, top_k, real_batch_size, device, model.nb_items)
             correct_predict = predict_basket * y_
             nb_correct = (correct_predict == 1.0).sum(dim=-1)
             actual_basket_size = (y_ == 1.0).sum(dim=-1)
