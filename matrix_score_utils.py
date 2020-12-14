@@ -37,9 +37,9 @@ def F1_matrix_score_for_data(model, A, data_loader, batch_size, top_k):
             for i in range(batch_f1.size()[0]):
                 if (nb_correct[i] > 0):
                     batch_f1[i] = (2 * (batch_precision[i] * batch_recall[i])) / (batch_precision[i] + batch_recall[i])
-                list_P_score.append(batch_precision[i])
-                list_R_score.append(batch_recall[i])
-                list_F1_score.append(batch_f1[i])
+                list_P_score.append(batch_precision[i].item())
+                list_R_score.append(batch_recall[i].item())
+                list_F1_score.append(batch_f1[i].item())
 
             # print(list_MRR_score)
             # print("MRR score: %.6f" % np.array(list_MRR_score).mean())
