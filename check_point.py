@@ -79,6 +79,11 @@ def load_config_param(path):
         data = json.load(fp)
         return data
 
+def save_score_matrix(model_dir, prefix_name, score_matrix):
+    score_file = model_dir + prefix_name + '/' + prefix_name + '_score_matrix.txt'
+    with open(score_file, 'a') as fp:
+        fp.write("R: %.6f / P: %.6f / F1: %.6f " % (score_matrix[0], score_matrix[1], score_matrix[2]))
+        fp.write("MRR: %.6f / HLU: %.6f \n" % (score_matrix[3], score_matrix[4]))
 
 # def save_log_result(log_result_file, train_result, val_result, test_result):
 #     with pd.ExcelWriter(log_result_file, mode='w') as writer:
