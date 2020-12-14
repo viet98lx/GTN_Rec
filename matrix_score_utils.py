@@ -7,7 +7,7 @@ import scipy.sparse as sp
 import numpy as np
 import data_utils
 
-def F1_matrix_score_for_data(model, data_loader, batch_size, top_k):
+def F1_matrix_score_for_data(model, A, data_loader, batch_size, top_k):
     device = model.device
     nb_batch = len(data_loader.dataset) // batch_size
     if len(data_loader.dataset) % batch_size == 0:
@@ -26,7 +26,7 @@ def F1_matrix_score_for_data(model, data_loader, batch_size, top_k):
             real_batch_size = x_.size()[0]
             hidden = model.init_hidden(real_batch_size)
             y_ = data_y.to(dtype=model.dtype, device=device)
-            logits_ = model(x_, data_seq_len, hidden)
+            logits_ = model(A, data_seq_len, x_, hidden)
             predict_basket = utils.predict_top_k(logits_, top_k, batch_size, device, model.nb_items)
             correct_predict = predict_basket * y_
             nb_correct = (correct_predict == 1.0).sum(dim=-1)
@@ -46,7 +46,7 @@ def F1_matrix_score_for_data(model, data_loader, batch_size, top_k):
 
     return np.array(list_R_score).mean(), np.array(list_P_score).mean(), np.array(list_F1_score).mean()
 
-def MRR_score_for_data(model, data_loader, batch_size):
+def MRR_score_for_data(model, A, data_loader, batch_size):
     device = model.device
     nb_batch = len(data_loader.dataset) // batch_size
     if len(data_loader.dataset) % batch_size == 0:
@@ -63,7 +63,7 @@ def MRR_score_for_data(model, data_loader, batch_size):
             real_batch_size = x_.size()[0]
             hidden = model.init_hidden(real_batch_size)
             y_ = data_y.to(dtype=model.dtype, device=device)
-            predict_ = model(x_, data_seq_len, hidden)
+            predict_ = model(A, data_seq_len, x_, hidden)
             sigmoid_pred = torch.sigmoid(predict_)
             sorted_rank, indices = torch.sort(sigmoid_pred, descending=True)
             for seq_idx, a_seq_idx in enumerate(y_):
@@ -88,7 +88,7 @@ def MRR_score_for_data(model, data_loader, batch_size):
         # print("MRR list len: %d" % len(list_MRR_score))
     return np.array(list_MRR_score).mean()
 
-def HLU_score_for_data(model, data_loader, batch_size):
+def HLU_score_for_data(model, A, data_loader, batch_size):
     device = model.device
     nb_batch = len(data_loader.dataset) // batch_size
     if len(data_loader.dataset) % batch_size == 0:
@@ -107,7 +107,7 @@ def HLU_score_for_data(model, data_loader, batch_size):
             real_batch_size = x_.size()[0]
             hidden = model.init_hidden(real_batch_size)
             y_ = data_y.to(dtype=model.dtype, device=device)
-            predict_ = model(x_, data_seq_len, hidden)
+            predict_ = model(A, data_seq_len, x_, hidden)
             sigmoid_pred = torch.sigmoid(predict_)
             sorted_rank, indices = torch.sort(sigmoid_pred, descending = True)
             for seq_idx, a_seq_idx in enumerate(y_):
