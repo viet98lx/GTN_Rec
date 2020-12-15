@@ -68,11 +68,11 @@ def MRR_score_for_data(model, A, data_loader, batch_size):
             sorted_rank, indices = torch.sort(sigmoid_pred, descending=True)
             for seq_idx, a_seq_idx in enumerate(y_):
                 # print(seq_idx)
-                idx_item_in_target_basket = (a_seq_idx == 1.0).nonzero()
+                idx_item_in_target_basket = (a_seq_idx == 1.0).nonzero(as_tuple=True)[0]
                 # print(idx_item_in_target_basket)
                 sum_of_rank_score = 0
                 for idx_item in idx_item_in_target_basket:
-                    item_rank = (indices[seq_idx] == idx_item).nonzero().item()
+                    item_rank = (indices[seq_idx] == idx_item).nonzero(as_tuple=True)[0].item()
                     # print("Rank %d" % (item_rank + 1))
                     rank_score = 1 / (item_rank + 1)
                     sum_of_rank_score += rank_score
@@ -112,11 +112,11 @@ def HLU_score_for_data(model, A, data_loader, batch_size):
             sorted_rank, indices = torch.sort(sigmoid_pred, descending = True)
             for seq_idx, a_seq_idx in enumerate(y_):
                 # print(seq_idx)
-                idx_item_in_target_basket = (a_seq_idx == 1.0).nonzero()
+                idx_item_in_target_basket = (a_seq_idx == 1.0).nonzero(as_tuple=True)[0]
                 # print(idx_item_in_target_basket)
                 sum_of_rank_score = 0
                 for idx_item in idx_item_in_target_basket:
-                    item_rank = (indices[seq_idx] == idx_item).nonzero().item()
+                    item_rank = (indices[seq_idx] == idx_item).nonzero(as_tuple=True)[0].item()
                     rank_score = 2**((1-(item_rank+1))/(beta-1))
                     sum_of_rank_score += rank_score
 
