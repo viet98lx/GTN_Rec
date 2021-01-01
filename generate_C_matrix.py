@@ -1,6 +1,7 @@
 import argparse
 import utils
 import scipy.sparse as sp
+import numpy as np
 import os
 
 parser = argparse.ArgumentParser(description='Generate C matrix.')
@@ -51,19 +52,24 @@ real_adj_matrix = utils.normalize_adj(real_adj_matrix)
 
 
 ##### calculate correlatoin matrix ######
-rmatrix_fpath = output_dir + "/r_matrix_" + str(nb_hop) + "w.npz"
+rmatrix_fpath = output_dir + "/mask_r_matrix_" + str(nb_hop) + "w.npz"
 mul = real_adj_matrix
 w_mul = real_adj_matrix
 coeff = 1.0
+mask_matrix = np.ones(NB_ITEMS, NB_ITEMS)
 for w in range(1, nb_hop):
-    coeff *= 0.85
+    # coeff *= 0.85
     w_mul *= real_adj_matrix
     w_mul = utils.remove_diag(w_mul)
 
     w_adj_matrix = utils.normalize_adj(w_mul)
     mul += coeff * w_adj_matrix
+    if w == nb_hop-2:
+        mask_matrix = float(mul == 0)
 
-real_adj_matrix = mul
+
+real_adj_matrix = np.multiply(mul * mask_matrix)
+print('Mask matrix density : %.6f' % (np.count_nonzero(mask_matrix) / NB_ITEMS / NB_ITEMS))
 print('density : %.6f' % (real_adj_matrix.nnz * 1.0 / NB_ITEMS / NB_ITEMS))
 sp.save_npz(rmatrix_fpath, real_adj_matrix)
 print(" + Save adj_matrix to" + rmatrix_fpath)
