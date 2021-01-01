@@ -56,7 +56,7 @@ rmatrix_fpath = output_dir + "/mask_r_matrix_" + str(nb_hop) + "w.npz"
 mul = real_adj_matrix
 w_mul = real_adj_matrix
 coeff = 1.0
-mask_matrix = np.ones(NB_ITEMS, NB_ITEMS)
+mask_matrix = float(mul == 0)
 for w in range(1, nb_hop):
     # coeff *= 0.85
     w_mul *= real_adj_matrix
@@ -64,7 +64,7 @@ for w in range(1, nb_hop):
 
     w_adj_matrix = utils.normalize_adj(w_mul)
     mul += coeff * w_adj_matrix
-    if w == nb_hop-2:
+    if w < nb_hop -1:
         mask_matrix = float(mul == 0)
 
 
