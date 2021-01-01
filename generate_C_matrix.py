@@ -68,11 +68,11 @@ for w in range(1, nb_hop):
         mask_matrix = 1 - (mul.todense() != 0)
 
 if nb_hop > 1:
+    print('Mask matrix density : %.6f' % (np.count_nonzero(mask_matrix) / NB_ITEMS / NB_ITEMS))
     real_adj_matrix = np.multiply(mul.todense(), mask_matrix)
     real_adj_matrix = real_adj_matrix.tocsr()
 else:
     real_adj_matrix = mul
-print('Mask matrix density : %.6f' % (np.count_nonzero(mask_matrix) / NB_ITEMS / NB_ITEMS))
 print('density : %.6f' % (real_adj_matrix.nnz * 1.0 / NB_ITEMS / NB_ITEMS))
 sp.save_npz(rmatrix_fpath, real_adj_matrix)
 print(" + Save adj_matrix to" + rmatrix_fpath)
