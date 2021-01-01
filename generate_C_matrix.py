@@ -67,8 +67,10 @@ for w in range(1, nb_hop):
     if w < nb_hop -1:
         mask_matrix = float(mul == 0)
 
-
-real_adj_matrix = np.multiply(mul * mask_matrix)
+if nb_hop > 1:
+    real_adj_matrix = np.multiply(mul * mask_matrix)
+else:
+    real_adj_matrix = mul
 print('Mask matrix density : %.6f' % (np.count_nonzero(mask_matrix) / NB_ITEMS / NB_ITEMS))
 print('density : %.6f' % (real_adj_matrix.nnz * 1.0 / NB_ITEMS / NB_ITEMS))
 sp.save_npz(rmatrix_fpath, real_adj_matrix)
