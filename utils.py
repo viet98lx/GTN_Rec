@@ -65,6 +65,42 @@ def build_knowledge(training_instances, validate_instances):
     reversed_item_dict = dict(zip(item_dict.values(), item_dict.keys()))
     return MAX_SEQ_LENGTH, item_dict, reversed_item_dict, item_probs
 
+def build_sparse_adjacency_matrix_v2(training_instances, validate_instances, item_dict):
+    NB_ITEMS = len(item_dict)
+
+    pairs = {}
+    for line in training_instances:
+        elements = line.split("|")
+
+        if len(elements) == 3:
+            basket_seq = elements[1:]
+        else:
+            basket_seq = [elements[-1]]
+
+        for basket in basket_seq:
+            item_list = re.split('[\\s]+', basket)
+            id_list = [item_dict[item] for item in item_list]
+
+            for t in list(itertools.product(id_list, id_list)):
+                add_tuple(t, pairs)
+
+    for line in validate_instances:
+        elements = line.split("|")
+
+        label = int(elements[0])
+        if label != 1 and len(elements) == 3:
+            basket_seq = elements[1:]
+        else:
+            basket_seq = [elements[-1]]
+
+        for basket in basket_seq:
+            item_list = re.split('[\\s]+', basket)
+            id_list = [item_dict[item] for item in item_list]
+
+            for t in list(itertools.product(id_list, id_list)):
+                add_tuple(t, pairs)
+
+    return create_sparse_matrix(pairs, NB_ITEMS)
 
 def build_item_vs_item_sparse_adj_matrix(training_instances, validate_instances, user_consumption_dict, item_dict):
     NB_ITEMS = len(item_dict)
