@@ -70,7 +70,7 @@ for w in range(1, nb_hop):
 if nb_hop > 1:
     print('Mask matrix density : %.6f' % (np.count_nonzero(mask_matrix) / NB_ITEMS / NB_ITEMS))
     real_adj_matrix = np.multiply(mul.todense(), mask_matrix)
-    real_adj_matrix = real_adj_matrix.tocsr()
+    real_adj_matrix = sp.csr_matrix(real_adj_matrix)
 else:
     real_adj_matrix = mul
 print('density : %.6f' % (real_adj_matrix.nnz * 1.0 / NB_ITEMS / NB_ITEMS))
