@@ -56,7 +56,7 @@ rmatrix_fpath = output_dir + "/mask_r_matrix_" + str(nb_hop) + "w.npz"
 mul = real_adj_matrix
 w_mul = real_adj_matrix
 coeff = 1.0
-mask_matrix = 1 - (mul.todense() != 0)
+# mask_matrix = 1 - (mul.todense() != 0)
 for w in range(1, nb_hop):
     # coeff *= 0.85
     w_mul *= real_adj_matrix
@@ -64,15 +64,15 @@ for w in range(1, nb_hop):
 
     w_adj_matrix = utils.normalize_adj(w_mul)
     mul += coeff * w_adj_matrix
-    if w == nb_hop -2:
-        mask_matrix = 1 - (mul.todense() != 0)
+    # if w == nb_hop -2:
+    #     mask_matrix = 1 - (mul.todense() != 0)
 
-if nb_hop > 1:
-    print('Mask matrix density : %.6f' % (np.count_nonzero(mask_matrix) / NB_ITEMS / NB_ITEMS))
-    real_adj_matrix = np.multiply(mul.todense(), mask_matrix)
-    real_adj_matrix = sp.csr_matrix(real_adj_matrix)
-else:
-    real_adj_matrix = mul
+# if nb_hop > 1:
+#     print('Mask matrix density : %.6f' % (np.count_nonzero(mask_matrix) / NB_ITEMS / NB_ITEMS))
+#     real_adj_matrix = np.multiply(mul.todense(), mask_matrix)
+#     real_adj_matrix = sp.csr_matrix(real_adj_matrix)
+# else:
+real_adj_matrix = mul
 print('density : %.6f' % (real_adj_matrix.nnz * 1.0 / NB_ITEMS / NB_ITEMS))
 sp.save_npz(rmatrix_fpath, real_adj_matrix)
 print(" + Save adj_matrix to" + rmatrix_fpath)
