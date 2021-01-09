@@ -52,7 +52,7 @@ real_adj_matrix = utils.normalize_adj(real_adj_matrix)
 
 
 ##### calculate correlatoin matrix ######
-rmatrix_fpath = output_dir + "/mask_r_matrix_" + str(nb_hop) + "w.npz"
+rmatrix_fpath = output_dir + "/v2_r_matrix_" + str(nb_hop) + "w.npz"
 mul = real_adj_matrix
 w_mul = real_adj_matrix
 coeff = 1.0
