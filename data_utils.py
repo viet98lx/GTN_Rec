@@ -32,7 +32,7 @@ def seq_generator(raw_lines, item_dict):
     Y = []
 
     lines = raw_lines[:]
-    np.random.shuffle(lines)
+    # np.random.shuffle(lines)
 
     for line in lines:
         elements = line.split("|")
