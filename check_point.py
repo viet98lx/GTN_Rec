@@ -67,6 +67,11 @@ def load_ckpt(checkpoint_fpath, model, optimizer):
     val_recalls = checkpoint['val_recall_list']
     return model, optimizer, checkpoint['epoch'], valid_loss_min, best_recall, train_losses, train_recalls, val_losses, val_recalls
 
+def load_model_statedict(checkpoint_fpath, model):
+    checkpoint = torch.load(checkpoint_fpath)
+    # initialize state_dict from checkpoint to model
+    model.load_state_dict(checkpoint['state_dict'])
+    return model
 
 def save_config_param(model_dir, prefix_name, config_param):
     config_file = model_dir + prefix_name + '/' + prefix_name + '_config.json'
