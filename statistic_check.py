@@ -1,5 +1,6 @@
 import glob, os
 import matplotlib.pyplot as plt
+import torch
 
 def  generate_top_k_result(data_loader, save_folder, A, model, reversed_item_dict, top_k, batch_size):
     result_file = os.path.join(save_folder, 'result_top' + str(top_k) + '.txt')
