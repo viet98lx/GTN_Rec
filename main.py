@@ -271,10 +271,10 @@ config_param['num_edge'] = len(edges)+1
 config_param['num_class'] = len(item_dict) # number items
 
 rec_sys_model = model.GTN_Rec(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
-multiple_gpu = args.multiple_gpu
-if multiple_gpu and torch.cuda.device_count() > 1:
-    print("Let's use", torch.cuda.device_count(), "GPUs!")
-    rec_sys_model = nn.DataParallel(rec_sys_model)
+# multiple_gpu = args.multiple_gpu
+# if multiple_gpu and torch.cuda.device_count() > 1:
+#     print("Let's use", torch.cuda.device_count(), "GPUs!")
+#     rec_sys_model = nn.DataParallel(rec_sys_model)
 rec_sys_model = rec_sys_model.to(exec_device, dtype= data_type)
 
 #### loss and optim ######
