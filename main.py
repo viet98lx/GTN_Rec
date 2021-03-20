@@ -78,7 +78,7 @@ def train_model(model, device, dtype, batch_size, loss_func, optimizer, A, train
     return avg_train_loss, avg_train_recall
 
 
-def validate_model(model, device, dtype, batch_size, loss_func, valid_loader, epoch, top_k, val_display_step):
+def validate_model(model, device, dtype, batch_size, loss_func, A, valid_loader, epoch, top_k, val_display_step):
     running_val_loss = 0.0
     running_val_recall = 0.0
     running_val_prec = 0.0
@@ -124,7 +124,7 @@ def validate_model(model, device, dtype, batch_size, loss_func, valid_loader, ep
     return avg_val_loss, avg_val_recall
 
 
-def test_model(model, device, dtype, batch_size, loss_func, test_loader, epoch, top_k, test_display_step):
+def test_model(model, device, dtype, batch_size, loss_func, A, test_loader, epoch, top_k, test_display_step):
     running_test_recall = 0.0
     running_test_loss = 0.0
     running_test_prec = 0.0
@@ -313,7 +313,7 @@ for ep in range(epoch):
     # writer.add_scalar("Precision/train", avg_train_precision, ep)
     # writer.add_scalar("F1/train", avg_train_f1, ep)
 
-    avg_val_loss, avg_val_recall = validate_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, valid_loader,
+    avg_val_loss, avg_val_recall = validate_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, A, valid_loader,
                                                               ep, top_k, val_display_step)
     writer.add_scalar("Loss/val", avg_val_loss, ep)
     writer.add_scalar("Recall/val", avg_val_recall, ep)
@@ -322,7 +322,7 @@ for ep in range(epoch):
     # val_losses.append(avg_val_loss)
     # val_recalls.append(avg_val_recall)
 
-    avg_test_loss, avg_test_recall = test_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, test_loader,
+    avg_test_loss, avg_test_recall = test_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, A, test_loader,
                                                             ep, top_k, test_display_step)
     # test_losses.append(avg_test_loss)
     # test_recalls.append(avg_test_recall)
