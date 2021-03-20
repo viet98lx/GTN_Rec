@@ -15,13 +15,13 @@ import time
 import os
 from torch.utils.tensorboard import SummaryWriter
 
-def train_model(model, device, loss_func, optimizer, A, train_loader, epoch, top_k, train_display_step):
+def train_model(model, device, dtype, loss_func, optimizer, A, train_loader, epoch, top_k, train_display_step):
     running_train_loss = 0.0
     running_train_recall = 0.0
     running_train_prec = 0.0
     running_train_f1 = 0.0
     # device = model.device
-    dtype = model.dtype
+    # dtype = model.dtype
     nb_train_batch = len(train_loader.dataset) // model.batch_size
     if len(train_loader.dataset) % model.batch_size == 0:
         total_train_batch = nb_train_batch
@@ -78,7 +78,7 @@ def train_model(model, device, loss_func, optimizer, A, train_loader, epoch, top
     return avg_train_loss, avg_train_recall
 
 
-def validate_model(model, device, loss_func, valid_loader, epoch, top_k, val_display_step):
+def validate_model(model, device, dtype, loss_func, valid_loader, epoch, top_k, val_display_step):
     running_val_loss = 0.0
     running_val_recall = 0.0
     running_val_prec = 0.0
@@ -94,10 +94,10 @@ def validate_model(model, device, loss_func, valid_loader, epoch, top_k, val_dis
     with torch.no_grad():
         for valid_i, valid_data in enumerate(valid_loader, 0):
             valid_in, valid_seq_len, valid_out = valid_data
-            x_valid = valid_in.to_dense().to(dtype=model.d_type, device=device)
+            x_valid = valid_in.to_dense().to(dtype=dtype, device=device)
             val_batch_size = x_valid.size()[0]
             hidden = model.init_hidden(val_batch_size)
-            y_valid = valid_out.to(device=device, dtype=model.d_type)
+            y_valid = valid_out.to(device=device, dtype=dtype)
 
             valid_predict = model(x_valid, valid_seq_len, hidden)
             val_loss = loss_func(valid_predict, y_valid)
@@ -124,7 +124,7 @@ def validate_model(model, device, loss_func, valid_loader, epoch, top_k, val_dis
     return avg_val_loss, avg_val_recall
 
 
-def test_model(model, device, loss_func, test_loader, epoch, top_k, test_display_step):
+def test_model(model, device, dtype, loss_func, test_loader, epoch, top_k, test_display_step):
     running_test_recall = 0.0
     running_test_loss = 0.0
     running_test_prec = 0.0
@@ -140,10 +140,10 @@ def test_model(model, device, loss_func, test_loader, epoch, top_k, test_display
     with torch.no_grad():
         for test_i, test_data in enumerate(test_loader, 0):
             test_in, test_seq_len, test_out = test_data
-            x_test = test_in.to_dense().to(dtype=model.d_type, device=device)
+            x_test = test_in.to_dense().to(dtype=dtype, device=device)
             real_test_batch_size = x_test.size()[0]
             hidden = model.init_hidden(real_test_batch_size)
-            y_test = test_out.to(device=device, dtype=model.d_type)
+            y_test = test_out.to(device=device, dtype=dtype)
 
             test_predict = model(x_test, test_seq_len, hidden)
             test_loss = loss_func(test_predict, y_test)
@@ -305,7 +305,7 @@ recall_max = 0.0
 loss_min = 10000
 
 for ep in range(epoch):
-    avg_train_loss, avg_train_recall = train_model(rec_sys_model, exec_device, loss_func, optimizer, A, train_loader, ep, top_k, train_display_step)
+    avg_train_loss, avg_train_recall = train_model(rec_sys_model, exec_device, data_type, loss_func, optimizer, A, train_loader, ep, top_k, train_display_step)
     # train_losses.append(avg_train_loss)
     # train_recalls.append(avg_train_recall)
 
@@ -314,7 +314,7 @@ for ep in range(epoch):
     # writer.add_scalar("Precision/train", avg_train_precision, ep)
     # writer.add_scalar("F1/train", avg_train_f1, ep)
 
-    avg_val_loss, avg_val_recall = validate_model(rec_sys_model, exec_device, loss_func, valid_loader,
+    avg_val_loss, avg_val_recall = validate_model(rec_sys_model, exec_device, data_type, loss_func, valid_loader,
                                                               ep, top_k, val_display_step)
     writer.add_scalar("Loss/val", avg_val_loss, ep)
     writer.add_scalar("Recall/val", avg_val_recall, ep)
@@ -323,7 +323,7 @@ for ep in range(epoch):
     # val_losses.append(avg_val_loss)
     # val_recalls.append(avg_val_recall)
 
-    avg_test_loss, avg_test_recall = test_model(rec_sys_model, exec_device, loss_func, test_loader,
+    avg_test_loss, avg_test_recall = test_model(rec_sys_model, exec_device, data_type, loss_func, test_loader,
                                                             ep, top_k, test_display_step)
     # test_losses.append(avg_test_loss)
     # test_recalls.append(avg_test_recall)
