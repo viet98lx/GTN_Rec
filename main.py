@@ -158,6 +158,7 @@ parser.add_argument('--lr', type=float, help='learning rate of optimizer', defau
 parser.add_argument('--dropout', type=float, help='drop out after linear model', default= 0.2)
 parser.add_argument('--basket_embed_dim', type=int, help='dimension of linear layers', default=8)
 parser.add_argument('--device', type=str, help='device for train and predict', default='cpu')
+parser.add_argument('--multiple_gpu', type=int, default=0)
 parser.add_argument('--topk', type=int, help='top k predict', default=10)
 parser.add_argument('--num_edges', type=int, help='number of adj matrix', default=2)
 parser.add_argument('--epoch', type=int, help='epoch to train', default=30)
@@ -251,6 +252,10 @@ config_param['num_edge'] = len(edges)+1
 config_param['num_class'] = len(item_dict) # number items
 
 rec_sys_model = model.GTN_Rec(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
+multiple_gpu = args.multiple_gpu
+if multiple_gpu and torch.cuda.device_count() > 1:
+    print("Let's use", torch.cuda.device_count(), "GPUs!")
+    rec_sys_model = nn.DataParallel(rec_sys_model)
 rec_sys_model = rec_sys_model.to(exec_device, dtype= data_type)
 
 #### loss and optim ######
