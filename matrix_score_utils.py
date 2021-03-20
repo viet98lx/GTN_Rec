@@ -28,18 +28,19 @@ def F1_matrix_score_for_data(model, A, data_loader, batch_size, top_k):
             y_ = data_y.to(dtype=model.dtype, device=device)
             logits_ = model(A, data_seq_len, x_, hidden)
             predict_basket = utils.predict_top_k(logits_, top_k, real_batch_size, model.nb_items)
-            correct_predict = predict_basket * y_
-            nb_correct = (correct_predict == 1.0).sum(dim=-1)
-            actual_basket_size = (y_ == 1.0).sum(dim=-1)
-            batch_recall = nb_correct.type(logits_.dtype) / actual_basket_size.type(logits_.dtype)
-            batch_precision = nb_correct.type(logits_.dtype) / top_k
-            batch_f1 = torch.zeros_like(batch_recall)
+            target_basket_np = y_.cpu().numpy()
+            correct_predict = predict_basket * target_basket_np
+            nb_correct = np.count_nonzero(correct_predict, axis=1)
+            actual_basket_size = np.count_nonzero(target_basket_np, axis=1)
+            batch_recall = nb_correct / actual_basket_size
+            batch_precision = nb_correct / top_k
+            batch_f1 = np.zeros_like(nb_correct, dtype=float)
             for i in range(batch_f1.size()[0]):
                 if (nb_correct[i] > 0):
                     batch_f1[i] = (2 * (batch_precision[i] * batch_recall[i])) / (batch_precision[i] + batch_recall[i])
-                list_P_score.append(batch_precision[i].item())
-                list_R_score.append(batch_recall[i].item())
-                list_F1_score.append(batch_f1[i].item())
+                list_P_score.append(batch_precision[i])
+                list_R_score.append(batch_recall[i])
+                list_F1_score.append(batch_f1[i])
 
             # print(list_MRR_score)
             # print("MRR score: %.6f" % np.array(list_MRR_score).mean())
