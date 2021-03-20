@@ -218,7 +218,7 @@ valid_loader = data_utils.generate_data_loader(valid_instances, config_param['ba
 test_loader = data_utils.generate_data_loader(test_instances, config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=False)
 
 ### init model ####
-exec_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+exec_device = torch.device('cuda:{}'.format(args.device[-1]) if ('gpu' in args.device and torch.cuda.is_available()) else 'cpu')
 # exec_device = torch.device('cpu')
 data_type = torch.float16
 num_nodes = len(item_dict) + len(user_consumption_dict)
