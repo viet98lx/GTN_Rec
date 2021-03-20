@@ -225,8 +225,13 @@ def compute_recall_at_top_k(model, logits, top_k, target_basket, batch_size):
     correct_predict = predict_basket * target_basket_np
     nb_correct = np.count_nonzero(correct_predict, axis=1)
     actual_basket_size = np.count_nonzero(target_basket_np, axis=1)
-
-    return np.mean(nb_correct / actual_basket_size)
+    recall = nb_correct / actual_basket_size
+    precision = nb_correct/ top_k
+    f1 = np.zeros_like(nb_correct, dtype=float)
+    for i in range(len(recall)):
+        if recall[i] != 0:
+            f1[i] = (2 * precision[i] * recall[i]) / (precision[i] + recall[i])
+    return np.mean(recall), np.mean(precision), np.mean(f1)
 
 
 def plot_loss(train_losses, val_losses, images_dir):
