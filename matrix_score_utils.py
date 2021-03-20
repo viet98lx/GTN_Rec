@@ -24,9 +24,9 @@ def F1_matrix_score_for_data(model, A, data_loader, batch_size, top_k):
             data_x, data_seq_len, data_y = data_pack
             x_ = data_x.to_dense().to(dtype=model.dtype, device=device)
             real_batch_size = x_.size()[0]
-            hidden = model.init_hidden(real_batch_size)
+            # hidden = model.init_hidden(real_batch_size)
             y_ = data_y.to(dtype=model.dtype, device=device)
-            logits_ = model(A, data_seq_len, x_, hidden)
+            logits_ = model(A, data_seq_len, x_)
             predict_basket = utils.predict_top_k(logits_, top_k, real_batch_size, model.nb_items)
             target_basket_np = y_.cpu().numpy()
             correct_predict = predict_basket * target_basket_np
@@ -62,9 +62,9 @@ def MRR_score_for_data(model, A, data_loader, batch_size):
             data_x, data_seq_len, data_y = data_pack
             x_ = data_x.to_dense().to(dtype=model.dtype, device=device)
             real_batch_size = x_.size()[0]
-            hidden = model.init_hidden(real_batch_size)
+            # hidden = model.init_hidden(real_batch_size)
             y_ = data_y.to(dtype=model.dtype, device=device)
-            predict_ = model(A, data_seq_len, x_, hidden)
+            predict_ = model(A, data_seq_len, x_)
             sigmoid_pred = torch.sigmoid(predict_)
             sorted_rank, indices = torch.sort(sigmoid_pred, descending=True)
             for seq_idx, a_seq_idx in enumerate(y_):
@@ -106,9 +106,9 @@ def HLU_score_for_data(model, A, data_loader, batch_size):
             data_x, data_seq_len, data_y = data_pack
             x_ = data_x.to_dense().to(dtype=model.dtype, device=device)
             real_batch_size = x_.size()[0]
-            hidden = model.init_hidden(real_batch_size)
+            # hidden = model.init_hidden(real_batch_size)
             y_ = data_y.to(dtype=model.dtype, device=device)
-            predict_ = model(A, data_seq_len, x_, hidden)
+            predict_ = model(A, data_seq_len, x_)
             sigmoid_pred = torch.sigmoid(predict_)
             sorted_rank, indices = torch.sort(sigmoid_pred, descending = True)
             for seq_idx, a_seq_idx in enumerate(y_):
