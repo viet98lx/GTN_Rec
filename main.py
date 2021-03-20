@@ -212,6 +212,8 @@ config_param['num_channels'] = 1 # num heads in transformer
 
 data_dir = args.data_dir
 output_dir = args.output_dir
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
 
 seed = args.seed
 torch.manual_seed(seed)
@@ -333,7 +335,7 @@ for ep in range(epoch):
     if (avg_test_recall > recall_max):
         score_matrix = []
         print('Test loss decrease from ({:.6f} --> {:.6f}) '.format(loss_min, avg_test_loss))
-        print('F1 increase from {:.6f} --> {:.6f}'.format(recall_max, avg_test_recall))
+        print('Test recall increase from {:.6f} --> {:.6f}'.format(recall_max, avg_test_recall))
         # check_point.save_ckpt(checkpoint, True, model_name, checkpoint_dir, best_model_dir, ep)
         check_point.save_config_param(output_dir, args.model_name, config_param)
         loss_min = avg_test_loss
