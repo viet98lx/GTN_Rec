@@ -59,8 +59,9 @@ class GTN_Rec(nn.Module):
         return (weight.new(self.rnn_layers, batch_size, self.rnn_units).zero_(),
                 weight.new(self.rnn_layers, batch_size, self.rnn_units).zero_())
 
-    def forward(self, A, seq_len, seqs, hidden):
+    def forward(self, A, seq_len, seqs):
         batch_size = seqs.shape[0]
+        hidden = self.init_hidden(batch_size)
         # Learn new structure graph by combine adjacency matrices
         A = A.unsqueeze(0).permute(0, 3, 1, 2).contiguous()
         # Ws = []
