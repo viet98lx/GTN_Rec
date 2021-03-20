@@ -98,3 +98,11 @@ def plot_item_freq(freq_dict):
   ax.bar(item_id, freq, align='edge', width=0.3)
   # plt.setp(ax.get_xticklabels(), rotation=90, horizontalalignment='right')
   fig.autofmt_xdate()
+
+def correct_item_freq(ground_truth_item_freq, predict_item_freq):
+  correct_freq_dict = dict()
+  for i in predict_item_freq.keys():
+    correct_freq_dict[i] = ground_truth_item_freq[i] if i in ground_truth_item_freq.keys() else 0
+
+  plot_item_freq(correct_freq_dict)
+

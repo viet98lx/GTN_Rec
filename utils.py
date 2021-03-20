@@ -184,7 +184,7 @@ def normalize_adj(adj_matrix):
     """Symmetrically normalize adjacency matrix."""
     row_sum = np.array(adj_matrix.sum(1))
     d_inv_sqrt = np.power(row_sum, -0.5).flatten()
-    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.0
     d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
     normalized_matrix = adj_matrix.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt)
     return normalized_matrix.tocsr()

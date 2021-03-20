@@ -63,11 +63,13 @@ for w in range(1, nb_hop):
     w_mul = utils.remove_diag(w_mul)
 
     w_adj_matrix = utils.normalize_adj(w_mul)
-    mul = coeff * w_adj_matrix
+    # mul = coeff * w_adj_matrix
     # if w == nb_hop -2:
     #     mask_matrix = 1 - (mul.todense() != 0)
-
-real_adj_matrix = mul
+if nb_hop <= 1:
+    real_adj_matrix = mul
+else:
+    real_adj_matrix = w_adj_matrix
 print('density : %.6f' % (real_adj_matrix.nnz * 1.0 / NB_ITEMS / NB_ITEMS))
 sp.save_npz(rmatrix_fpath, real_adj_matrix)
 print(" + Save adj_matrix to" + rmatrix_fpath)
