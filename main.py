@@ -245,7 +245,7 @@ test_loader = data_utils.generate_data_loader(test_instances, config_param['batc
 
 ### init model ####
 exec_device = torch.device('cuda:{}'.format(args.device[-1]) if ('gpu' in args.device and torch.cuda.is_available()) else 'cpu')
-data_type = torch.float16
+data_type = torch.float
 # num_nodes = len(item_dict) + len(user_consumption_dict)
 
 norm = True # normalize adj matrix
