@@ -13,6 +13,7 @@ import scipy.sparse as sp
 import random
 import time
 import os
+from torch.utils.tensorboard import SummaryWriter
 
 def train_model(model, loss_func, optimizer, A, train_loader, epoch, top_k, train_display_step):
     running_train_loss = 0.0
@@ -157,7 +158,7 @@ parser.add_argument('--lr', type=float, help='learning rate of optimizer', defau
 parser.add_argument('--dropout', type=float, help='drop out after linear model', default= 0.2)
 parser.add_argument('--basket_embed_dim', type=int, help='dimension of linear layers', default=8)
 parser.add_argument('--device', type=str, help='device for train and predict', default='cpu')
-parser.add_argument('--top_k', type=int, help='top k predict', default=10)
+parser.add_argument('--topk', type=int, help='top k predict', default=10)
 parser.add_argument('--num_edges', type=int, help='number of adj matrix', default=2)
 parser.add_argument('--epoch', type=int, help='epoch to train', default=30)
 parser.add_argument('--epsilon', type=float, help='different between loss of two consecutive epoch ', default=0.00000001)
@@ -188,9 +189,12 @@ data_dir = args.data_dir
 output_dir = args.output_dir
 # nb_hop = args.nb_hop
 
-torch.manual_seed(0)
-np.random.seed(0)
-random.seed(0)
+seed = args.seed
+torch.manual_seed(seed)
+np.random.seed(seed)
+random.seed(seed)
+
+
 
 train_data_path = data_dir + 'train.txt'
 train_instances = utils.read_instances_lines_from_file(train_data_path)
@@ -227,13 +231,9 @@ config_param['num_class'] = len(item_dict) # number items
 norm = True # normalize adj matrix
 
 edges = []
-# i_i_adj = sp.load_npz(data_dir + 'adj_matrix/i_vs_i_sparse.npz')
-# edges.append(i_i_adj)
-# u_i_adj = sp.load_npz(data_dir + 'adj_matrix/u_vs_i_sparse.npz')
-# edges.append(u_i_adj)
 
 for i in range(args.num_edges):
-    adj_matrix = sp.load_npz(data_dir + 'adj_matrix/r_matrix_' + str(i+1) + 'w.npz')
+    adj_matrix = sp.load_npz(data_dir + 'adj_matrix/v2_r_matrix_' + str(i+1) + 'w.npz')
     edges.append(adj_matrix)
 
 ############### Dense version ##########################
@@ -266,8 +266,9 @@ print(rec_sys_model.device)
 # print(X_feature.device)
 
 ########## train #################
-epoch = 2
-top_k = 10
+writer = SummaryWriter()
+epoch = args.epoch
+top_k = args.topk
 train_display_step = 300
 val_display_step = 100
 test_display_step = 30
@@ -277,18 +278,58 @@ val_losses = []
 val_recalls = []
 test_losses = []
 test_recalls = []
+recall_max = 0.0
+loss_min = 10000
 
 for ep in range(epoch):
     avg_train_loss, avg_train_recall = train_model(rec_sys_model, loss_func, optimizer, A, train_loader, ep, top_k, train_display_step)
-    train_losses.append(avg_train_loss)
-    train_recalls.append(avg_train_recall)
+    # train_losses.append(avg_train_loss)
+    # train_recalls.append(avg_train_recall)
+
+    writer.add_scalar("Loss/train", avg_train_loss, ep)
+    writer.add_scalar("Recall/train", avg_train_recall, ep)
+    # writer.add_scalar("Precision/train", avg_train_precision, ep)
+    # writer.add_scalar("F1/train", avg_train_f1, ep)
 
     avg_val_loss, avg_val_recall = validate_model(rec_sys_model, loss_func, valid_loader,
                                                               ep, top_k, val_display_step)
-    val_losses.append(avg_val_loss)
-    val_recalls.append(avg_val_recall)
+    writer.add_scalar("Loss/val", avg_val_loss, ep)
+    writer.add_scalar("Recall/val", avg_val_recall, ep)
+    # writer.add_scalar("Precision/val", avg_val_precision, ep)
+    # writer.add_scalar("F1/val", avg_val_f1, ep)
+    # val_losses.append(avg_val_loss)
+    # val_recalls.append(avg_val_recall)
 
     avg_test_loss, avg_test_recall = test_model(rec_sys_model, loss_func, test_loader,
                                                             ep, top_k, test_display_step)
-    test_losses.append(avg_test_loss)
-    test_recalls.append(avg_test_recall)
+    # test_losses.append(avg_test_loss)
+    # test_recalls.append(avg_test_recall)
+    writer.add_scalar("Loss/test", avg_test_loss, ep)
+    writer.add_scalar("Recall/test", avg_test_recall, ep)
+    # writer.add_scalar("Precision/test", avg_test_precision, ep)
+    # writer.add_scalar("F1/test", avg_test_f1, ep)
+    if (avg_test_recall > recall_max):
+        score_matrix = []
+        print('Test loss decrease from ({:.6f} --> {:.6f}) '.format(loss_min, avg_test_loss))
+        print('F1 increase from {:.6f} --> {:.6f}'.format(recall_max, avg_test_recall))
+        # check_point.save_ckpt(checkpoint, True, model_name, checkpoint_dir, best_model_dir, ep)
+        # check_point.save_config_param(best_model_dir, model_name, config_param)
+        loss_min = avg_test_loss
+        recall_max = avg_test_recall
+        torch.save(rec_sys_model, output_dir+'/best_'+args.model_name+'.pt')
+        print('Can save model')
+
+        # avg_R_score, avg_P_score, avg_F1_score = matrix_score_utils.F1_matrix_score_for_data(rec_sys_model, A,
+        #                                                                                      test_loader,
+        #                                                                                      config_param['batch_size'],
+        #                                                                                      top_k)
+        # avg_MRR_score = matrix_score_utils.MRR_score_for_data(rec_sys_model, A, test_loader, config_param['batch_size'])
+        # avg_HLU_score = matrix_score_utils.HLU_score_for_data(rec_sys_model, A, test_loader, config_param['batch_size'])
+        # score_matrix.extend([avg_R_score, avg_P_score, avg_F1_score, avg_MRR_score, avg_HLU_score])
+        # check_point.save_score_matrix(best_model_dir, model_name, score_matrix)
+        # score_matrix.clear()
+
+    print('-' * 100)
+
+    writer.flush()
+    writer.close()
