@@ -62,7 +62,7 @@ def train_model(model, device, dtype, batch_size, loss_func, optimizer, A, train
         if ((i + 1) % train_display_step == 0 or (i + 1) == total_train_batch):  # print every 50 mini-batches
             top_pred = predict.clone().detach().topk(dim=-1, k=top_k, sorted=True)
             print(
-                '[Epoch : % d ,Batch Index : %d / %d] Train Loss : %.8f ----- Train Recall@%d: %.8f / Train Precision@%d: %.8f / Train F1@%d: %.8f ----- Time : %.3f seconds ' %
+                '[Epoch : % d ,Batch Index : %d / %d] Train Loss : %.8f ----- Train Recall@%d: %.8f / Train Precision: %.8f / Train F1: %.8f ----- Time : %.3f seconds ' %
                 (epoch, i + 1, total_train_batch, avg_train_loss, top_k, avg_train_recall, avg_train_prec, avg_train_f1, end - start))
             print("top k indices predict: ")
             print('--------------------------------------------------------------')
