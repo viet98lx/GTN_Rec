@@ -99,7 +99,7 @@ def validate_model(model, device, dtype, batch_size, loss_func, valid_loader, ep
             # hidden = model.init_hidden(val_batch_size)
             y_valid = valid_out.to(device=device, dtype=dtype)
 
-            valid_predict = model(x_valid, valid_seq_len)
+            valid_predict = model(A, x_valid, valid_seq_len)
             val_loss = loss_func(valid_predict, y_valid)
 
             val_loss_item = val_loss.item()
@@ -145,7 +145,7 @@ def test_model(model, device, dtype, batch_size, loss_func, test_loader, epoch, 
             # hidden = model.init_hidden(real_test_batch_size)
             y_test = test_out.to(device=device, dtype=dtype)
 
-            test_predict = model(x_test, test_seq_len)
+            test_predict = model(A, x_test, test_seq_len)
             test_loss = loss_func(test_predict, y_test)
 
             test_loss_item = test_loss.item()
