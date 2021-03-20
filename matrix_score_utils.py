@@ -35,7 +35,7 @@ def F1_matrix_score_for_data(model, A, data_loader, batch_size, top_k):
             batch_recall = nb_correct / actual_basket_size
             batch_precision = nb_correct / top_k
             batch_f1 = np.zeros_like(nb_correct, dtype=float)
-            for i in range(batch_f1.size()[0]):
+            for i in range(len(batch_f1)):
                 if (nb_correct[i] > 0):
                     batch_f1[i] = (2 * (batch_precision[i] * batch_recall[i])) / (batch_precision[i] + batch_recall[i])
                 list_P_score.append(batch_precision[i])
