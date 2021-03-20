@@ -285,7 +285,7 @@ optimizer = torch.optim.RMSprop(rec_sys_model.parameters(), lr=args.lr)
 
 print("Device (A, model, X_feature): ")
 print(A[0][0].device)
-print(rec_sys_model.device)
+# print(rec_sys_model.device)
 # print(X_feature.device)
 
 ########## train #################
