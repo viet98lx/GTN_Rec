@@ -172,29 +172,31 @@ args = parser.parse_args()
 seed = args.seed
 torch.manual_seed(seed)
 
+data_type = torch.float
+# X_feature = torch.rand((num_nodes, 16)).to(exec_device)
+# X_feature = torch.eye(num_nodes, dtype=data_type, device=exec_device)
+
+
+
 config_param={}
 config_param['basket_embed_dim'] = args.basket_embed_dim
 config_param['rnn_units'] = args.rnn_units
 config_param['rnn_layers'] = args.rnn_layers
 config_param['dropout'] = args.dropout
 config_param['batch_size'] = args.batch_size
-# config_param['num_heads'] = args.transformer_head
+config_param['batch_size'] = args.batch_size
 config_param['top_k'] = args.topk
 config_param['alpha'] = args.alpha
-# config_param['num_edge'] = args.num_edge  # num adj matrix edge type
-config_param['num_channels'] = args.num_channels # num heads in GTN
-config_param['num_layers'] = args.num_gtn_layers # len of metapath in GTN
+config_param['num_layers'] = 1 # len of metapath in GTN
+config_param['num_channels'] = 1 # num heads in transformer
 
 data_dir = args.data_dir
 output_dir = args.output_dir
-# nb_hop = args.nb_hop
 
 seed = args.seed
 torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
-
-
 
 train_data_path = data_dir + 'train.txt'
 train_instances = utils.read_instances_lines_from_file(train_data_path)
@@ -214,7 +216,7 @@ print(nb_test)
 ### build knowledge ###
 
 print("---------------------@Build knowledge-------------------------------")
-MAX_SEQ_LENGTH, item_dict, reversed_item_dict, item_probs, user_consumption_dict = utils.build_knowledge(train_instances, valid_instances, test_instances)
+MAX_SEQ_LENGTH, item_dict, reversed_item_dict, item_probs = utils.build_knowledge(train_instances, valid_instances)
 
 print('---------------------Create data loader--------------------')
 train_loader = data_utils.generate_data_loader(train_instances, config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=True)
@@ -223,10 +225,8 @@ test_loader = data_utils.generate_data_loader(test_instances, config_param['batc
 
 ### init model ####
 exec_device = torch.device('cuda:{}'.format(args.device[-1]) if ('gpu' in args.device and torch.cuda.is_available()) else 'cpu')
-# exec_device = torch.device('cpu')
 data_type = torch.float16
-num_nodes = len(item_dict) + len(user_consumption_dict)
-config_param['num_class'] = len(item_dict) # number items
+# num_nodes = len(item_dict) + len(user_consumption_dict)
 
 norm = True # normalize adj matrix
 
@@ -244,21 +244,19 @@ for i, edge in enumerate(edges):
         A = torch.cat([A,torch.from_numpy(edge.todense()).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
 
 # edges.clear()
+num_nodes = len(item_dict)
 A = torch.cat([A,torch.eye(num_nodes).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
-
-config_param['num_edge'] = args.num_edges
-print("Num edges: ")
-print(config_param['num_edge'])
-
 A = A.to(device = exec_device, dtype = data_type)
-
+config_param['num_edge'] = len(edges)+1
+config_param['num_class'] = len(item_dict) # number items
 
 rec_sys_model = model.GTN_Rec(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
 rec_sys_model = rec_sys_model.to(exec_device, dtype= data_type)
 
 #### loss and optim ######
 loss_func = loss.Weighted_BCE_Loss()
-optimizer = torch.optim.Adam(rec_sys_model.parameters(), lr=0.005)
+# optimizer = torch.optim.Adam(rec_sys_model.parameters(), lr=0.0001)
+optimizer = torch.optim.RMSprop(rec_sys_model.parameters(), lr=args.lr)
 
 print("Device (A, model, X_feature): ")
 print(A[0][0].device)

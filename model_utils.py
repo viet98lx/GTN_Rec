@@ -34,7 +34,7 @@ def train_model(model, loss_func, optimizer, A, train_loader, epoch, top_k, trai
         running_train_loss += train_loss_item
         avg_train_loss = running_train_loss / (i + 1)
 
-        train_recall_item = utils.compute_recall_at_top_k(model, predict.clone().detach(), top_k, target_basket_train.clone().detach(), real_batch_size, device)
+        train_recall_item = utils.compute_recall_at_top_k(model, predict.clone().detach(), top_k, target_basket_train.clone().detach(), real_batch_size)
         running_train_recall += train_recall_item
         avg_train_recall = running_train_recall / (i + 1)
 
@@ -85,7 +85,7 @@ def validate_model(model, loss_func, valid_loader, epoch, top_k, val_display_ste
             running_val_loss += val_loss_item
             avg_val_loss = running_val_loss / (valid_i + 1)
 
-            val_recall_item = utils.compute_recall_at_top_k(model, valid_predict, top_k, y_valid, val_batch_size, device)
+            val_recall_item = utils.compute_recall_at_top_k(model, valid_predict, top_k, y_valid, val_batch_size)
             running_val_recall += val_recall_item
             avg_val_recall = running_val_recall / (valid_i + 1)
 
@@ -123,8 +123,7 @@ def test_model(model, loss_func, test_loader, epoch, top_k, test_display_step):
             running_test_loss += test_loss_item
             avg_test_loss = running_test_loss / (test_i + 1)
 
-            running_test_recall += utils.compute_recall_at_top_k(model, test_predict, top_k, y_test, real_test_batch_size,
-                                                           device)
+            running_test_recall += utils.compute_recall_at_top_k(model, test_predict, top_k, y_test, real_test_batch_size)
             avg_test_recall = running_test_recall / (test_i + 1)
             if ((test_i + 1) % test_display_step == 0 or (test_i + 1) == total_test_batch):
                 print('[Epoch : % d , Test batch_index : %3d --------- Test loss: %.8f ------------- Test Recall@%d : %.8f' %

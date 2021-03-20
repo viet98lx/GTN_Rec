@@ -200,42 +200,34 @@ def read_instances_lines_from_file(file_path):
         lines = [line.rstrip('\n') for line in f]
         return lines
 
-def predict_top_k(logits, top_k, batch_size, device, nb_items):
-    predict_prob = torch.sigmoid(logits)
+def predict_top_k(logits, top_k, batch_size, nb_items):
+    predict_prob = torch.sigmoid(logits).cpu()
     # predict_prob = logits
     row_index = [i for i in range(0, batch_size)]
-    top_k_col_indices = predict_prob.topk(dim=-1, k=top_k, sorted=True).indices.reshape([-1]).to(device)
+    top_k_col_indices = predict_prob.topk(dim=-1, k=top_k, sorted=True).indices.reshape([-1])
     # print('---------------col indices --------------')
     # print(top_k_col_indices)
     top_k_row_indices = torch.ones(batch_size, top_k, dtype=torch.long) * torch.Tensor(row_index).type(
         torch.long).unsqueeze(1)
-    top_k_row_indices = top_k_row_indices.reshape([-1]).to(device)
+    top_k_row_indices = top_k_row_indices.reshape([-1])
     # print('---------------row indices --------------')
     # print(top_k_row_indices)
-    top_k_values = torch.ones(batch_size * top_k).to(device, logits.dtype)
-    top_k_indices = torch.stack([top_k_row_indices, top_k_col_indices], dim=0)
-    # print('---------------top k indices --------------')
-    # print(top_k_indices)
-    predict_top_k = torch.sparse_coo_tensor(indices=top_k_indices, values=top_k_values, size=(batch_size, nb_items))
-    return predict_top_k.to_dense().type(logits.dtype)
+    top_k_values = np.ones(batch_size * top_k)
+    topk_row , topk_col = top_k_row_indices.numpy(), top_k_col_indices.numpy()
+    predict_topk = sp.csc_matrix((top_k_values, (topk_row, topk_col)), shape=(batch_size, nb_items)).toarray()
+    return predict_topk
 
 
-def compute_recall_at_top_k(model, logits, top_k, target_basket, batch_size, device):
+def compute_recall_at_top_k(model, logits, top_k, target_basket, batch_size):
     nb_items = model.nb_items
-    predict_basket = predict_top_k(logits, top_k, batch_size, device, nb_items)
-    correct_predict = predict_basket * target_basket
-    nb_correct = (correct_predict == 1.0).sum(dim=-1)
-    actual_basket_size = (target_basket == 1.0).sum(dim=-1)
-    batch_recall = nb_correct.type(logits.dtype) / actual_basket_size.type(logits.dtype)
-    batch_precision = nb_correct.type(logits.dtype) / top_k
-    batch_f1 = torch.zeros_like(batch_recall)
-    for i in range(batch_f1.size()[0]):
-        if (nb_correct[i] > 0):
-            batch_f1[i] = (2 * (batch_precision[i] * batch_recall[i])) / (batch_precision[i] + batch_recall[i])
-    # print(nb_correct)
-    # print(actual_basket_size)
+    predict_basket = predict_top_k(logits, top_k, batch_size, nb_items)
+    target_basket_np = target_basket.cpu().numpy()
+    correct_predict = predict_basket * target_basket_np
+    nb_correct = np.count_nonzero(correct_predict, axis=1)
+    actual_basket_size = np.count_nonzero(target_basket_np, axis=1)
 
-    return torch.mean(batch_recall).item(), torch.mean(batch_precision).item(), torch.mean(batch_f1).item()
+    return np.mean(nb_correct / actual_basket_size)
+
 
 def plot_loss(train_losses, val_losses, images_dir):
     with plt.style.context('seaborn-dark'):

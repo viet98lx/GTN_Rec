@@ -13,9 +13,9 @@ class Weighted_BCE_Loss(torch.nn.Module):
         neg_y = (1.0 - y)
         pos_predict = y * predict
 
-        pos_max = torch.max(pos_predict, dim=1).values.unsqueeze(1)
-        # print(pos_max)
-        pos_min = torch.min(pos_predict + neg_y * pos_max, dim=1).values.unsqueeze(1)
+        # pos_max = torch.max(pos_predict, dim=1).values.unsqueeze(1)
+        # # print(pos_max)
+        # pos_min = torch.min(pos_predict + neg_y * pos_max, dim=1).values.unsqueeze(1)
         # print(pos_min)
 
         nb_pos = (neg_y == 0).sum(dim=-1).to(predict.dtype)
@@ -24,7 +24,7 @@ class Weighted_BCE_Loss(torch.nn.Module):
         ratio = (nb_neg / nb_pos).unsqueeze(dim=-1)
         # print(ratio)
 
-        neg_loss = -neg_y * torch.log(1.0 - torch.sigmoid(predict - pos_min))
+        neg_loss = -neg_y * torch.log(1.0 - sigmoid_predict)
         # neg_loss = -neg_y * torch.log(1.0 - sigmoid_predict)
         pos_loss = -y * torch.log(sigmoid_predict)
 
