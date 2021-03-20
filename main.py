@@ -18,6 +18,8 @@ from torch.utils.tensorboard import SummaryWriter
 def train_model(model, loss_func, optimizer, A, train_loader, epoch, top_k, train_display_step):
     running_train_loss = 0.0
     running_train_recall = 0.0
+    running_train_prec = 0.0
+    running_train_f1 = 0.0
     device = model.device
     dtype = model.dtype
     nb_train_batch = len(train_loader.dataset) // model.batch_size
@@ -47,17 +49,21 @@ def train_model(model, loss_func, optimizer, A, train_loader, epoch, top_k, trai
         running_train_loss += train_loss_item
         avg_train_loss = running_train_loss / (i + 1)
 
-        train_recall_item = utils.compute_recall_at_top_k(model, predict.clone().detach(), top_k, target_basket_train.clone().detach(), real_batch_size, device)
+        train_recall_item, train_prec_item, train_f1_item = utils.compute_recall_at_top_k(model, predict.clone().detach(), top_k, target_basket_train.clone().detach(), real_batch_size)
         running_train_recall += train_recall_item
+        running_train_prec += train_prec_item
+        running_train_f1 += train_f1_item
         avg_train_recall = running_train_recall / (i + 1)
+        avg_train_prec = running_train_prec / (i + 1)
+        avg_train_f1 = running_train_f1 / (i + 1)
 
         end = time.time()
 
         if ((i + 1) % train_display_step == 0 or (i + 1) == total_train_batch):  # print every 50 mini-batches
             top_pred = predict.clone().detach().topk(dim=-1, k=top_k, sorted=True)
             print(
-                '[Epoch : % d ,Batch Index : %d / %d] Train Loss : %.8f -------- Train Recall@%d: %.8f -------- Time : %.3f seconds ' %
-                (epoch, i + 1, total_train_batch, avg_train_loss, top_k, avg_train_recall, end - start))
+                '[Epoch : % d ,Batch Index : %d / %d] Train Loss : %.8f ----- Train Recall@%d: %.8f / Train Precision@%d: %.8f / Train F1@%d: %.8f ----- Time : %.3f seconds ' %
+                (epoch, i + 1, total_train_batch, avg_train_loss, top_k, avg_train_recall, avg_train_prec, avg_train_f1, end - start))
             print("top k indices predict: ")
             print('--------------------------------------------------------------')
             print('*****  indices *****')
@@ -75,6 +81,8 @@ def train_model(model, loss_func, optimizer, A, train_loader, epoch, top_k, trai
 def validate_model(model, loss_func, valid_loader, epoch, top_k, val_display_step):
     running_val_loss = 0.0
     running_val_recall = 0.0
+    running_val_prec = 0.0
+    running_val_f1 = 0.0
     device = model.device
     nb_val_batch = len(valid_loader.dataset) // model.batch_size
     if len(valid_loader.dataset) % model.batch_size == 0:
@@ -98,14 +106,20 @@ def validate_model(model, loss_func, valid_loader, epoch, top_k, val_display_ste
             running_val_loss += val_loss_item
             avg_val_loss = running_val_loss / (valid_i + 1)
 
-            val_recall_item = utils.compute_recall_at_top_k(model, valid_predict, top_k, y_valid, val_batch_size, device)
+            val_recall_item, val_prec_item, val_f1_item = utils.compute_recall_at_top_k(model, valid_predict, top_k, y_valid, val_batch_size)
+
             running_val_recall += val_recall_item
+            running_val_prec += val_prec_item
+            running_val_f1 += val_f1_item
+
             avg_val_recall = running_val_recall / (valid_i + 1)
+            avg_val_prec = running_val_prec / (valid_i + 1)
+            avg_val_f1 = running_val_f1 / (valid_i + 1)
 
             if ((valid_i + 1) % val_display_step == 0 or (
                     valid_i + 1) == total_val_batch):  # print every 50 mini-batches
-                print('[Epoch : % d ,Valid batch Index : %d / %d] Valid Loss : %.8f -------- Valid Recall@%d: %.8f' %
-                      (epoch, valid_i + 1, total_val_batch, avg_val_loss, top_k, avg_val_recall))
+                print('[Epoch : % d ,Valid batch Index : %d / %d] Valid Loss : %.8f ----- Valid Recall@%d: %.8f / Valid Precision: %.8f / Valid F1: %.8f' %
+                      (epoch, valid_i + 1, total_val_batch, avg_val_loss, top_k, avg_val_recall, avg_val_prec, avg_val_f1))
 
     return avg_val_loss, avg_val_recall
 
@@ -113,6 +127,8 @@ def validate_model(model, loss_func, valid_loader, epoch, top_k, val_display_ste
 def test_model(model, loss_func, test_loader, epoch, top_k, test_display_step):
     running_test_recall = 0.0
     running_test_loss = 0.0
+    running_test_prec = 0.0
+    running_test_f1 = 0.0
     device = model.device
     nb_test_batch = len(test_loader.dataset) // model.batch_size
     if len(test_loader.dataset) % model.batch_size == 0:
@@ -136,12 +152,16 @@ def test_model(model, loss_func, test_loader, epoch, top_k, test_display_step):
             running_test_loss += test_loss_item
             avg_test_loss = running_test_loss / (test_i + 1)
 
-            running_test_recall += utils.compute_recall_at_top_k(model, test_predict, top_k, y_test, real_test_batch_size,
-                                                           device)
+            test_recall_item, test_prec_item, test_f1_item = utils.compute_recall_at_top_k(model, test_predict, top_k, y_test, real_test_batch_size)
+            running_test_recall += test_recall_item
+            running_test_prec += test_prec_item
+            running_test_f1 += test_f1_item
             avg_test_recall = running_test_recall / (test_i + 1)
+            avg_test_prec = running_test_prec / (test_i + 1)
+            avg_test_f1 = running_test_f1 / (test_i + 1)
             if ((test_i + 1) % test_display_step == 0 or (test_i + 1) == total_test_batch):
-                print('[Epoch : % d , Test batch_index : %3d --------- Test loss: %.8f ------------- Test Recall@%d : %.8f' %
-                      (epoch, test_i + 1, avg_test_loss, top_k, avg_test_recall))
+                print('[Epoch : % d , Test batch_index : %3d --------- Test loss: %.8f ----- Test Recall@%d : %.8f / Test Prec: %.8f / Test F1: %.8f' %
+                      (epoch, test_i + 1, avg_test_loss, top_k, avg_test_recall, avg_test_prec, avg_test_f1))
 
     return avg_test_loss, avg_test_recall
 
