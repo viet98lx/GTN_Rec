@@ -49,7 +49,7 @@ def train_model(model, loss_func, optimizer, A, train_loader, epoch, top_k, trai
         running_train_loss += train_loss_item
         avg_train_loss = running_train_loss / (i + 1)
 
-        train_recall_item, train_prec_item, train_f1_item = utils.compute_recall_at_top_k(model, predict.clone().detach(), top_k, target_basket_train.clone().detach(), real_batch_size)
+        train_recall_item, train_prec_item, train_f1_item = utils.compute_recall_at_top_k(model, predict.detach(), top_k, target_basket_train.detach(), real_batch_size)
         running_train_recall += train_recall_item
         running_train_prec += train_prec_item
         running_train_f1 += train_f1_item
