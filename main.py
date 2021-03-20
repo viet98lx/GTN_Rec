@@ -313,7 +313,7 @@ for ep in range(epoch):
         print('Test loss decrease from ({:.6f} --> {:.6f}) '.format(loss_min, avg_test_loss))
         print('F1 increase from {:.6f} --> {:.6f}'.format(recall_max, avg_test_recall))
         # check_point.save_ckpt(checkpoint, True, model_name, checkpoint_dir, best_model_dir, ep)
-        # check_point.save_config_param(best_model_dir, model_name, config_param)
+        check_point.save_config_param(output_dir, args.model_name, config_param)
         loss_min = avg_test_loss
         recall_max = avg_test_recall
         torch.save(rec_sys_model, output_dir+'/best_'+args.model_name+'.pt')

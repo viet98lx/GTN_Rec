@@ -74,7 +74,7 @@ def load_model_statedict(checkpoint_fpath, model):
     return model
 
 def save_config_param(model_dir, prefix_name, config_param):
-    config_file = model_dir + prefix_name + '/' + prefix_name + '_config.json'
+    config_file = model_dir + '/' + prefix_name + '_config.json'
     with open(config_file, 'w') as fp:
         json.dump(config_param, fp)
 
