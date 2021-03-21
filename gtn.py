@@ -136,5 +136,5 @@ class GTConv(nn.Module):
             nn.init.uniform_(self.bias, -bound, bound)
 
     def forward(self, A):
-        A = torch.sum(A.cuda() * F.softmax(self.weight, dim=1).cuda(), dim=1)
+        A = torch.sum(A * F.softmax(self.weight, dim=1), dim=1)
         return A
