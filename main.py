@@ -293,7 +293,7 @@ log_dir = 'seed_{}'.format(seed)
 # if not os.path.exists(log_dir):
 #     os.makedirs(log_dir)
 ########## train #################
-writer = SummaryWriter(log_dir='runs/'+log_dir, comment=args.model_name)
+writer = SummaryWriter(log_dir='runs/'+log_dir+'_'+args.model_name)
 epoch = args.epoch
 top_k = args.topk
 train_display_step = 300
