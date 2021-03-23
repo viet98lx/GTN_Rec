@@ -27,6 +27,7 @@ parser.add_argument('--top_k', type=int, help='top k predict', default=10)
 parser.add_argument('--epsilon', type=float, help='different between loss of two consecutive epoch ', default=0.00000001)
 parser.add_argument('--nb_hop', type=int, help='level of correlation matrix', default=1)
 parser.add_argument('--num_edges', type=int, help='number of adj matrix', default=2)
+parser.add_argument('--seed', type=int, help='random seed', default=0)
 parser.add_argument('--device', type=str, help='device for train and predict', default='cpu')
 
 args = parser.parse_args()
@@ -42,9 +43,10 @@ config_param_file = args.config_param_path
 checkpoint_fpath = args.ckpt_path
 config_param = check_point.load_config_param(config_param_file)
 
-torch.manual_seed(1)
-np.random.seed(2)
-random.seed(0)
+seed = args.seed
+torch.manual_seed(seed)
+np.random.seed(seed)
+random.seed(seed)
 
 train_data_path = data_dir + 'train.txt'
 train_instances = utils.read_instances_lines_from_file(train_data_path)
