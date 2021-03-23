@@ -75,7 +75,7 @@ def train_model(model, device, dtype, batch_size, loss_func, optimizer, A, train
             start = time.time()
     torch.cuda.empty_cache()
     print('finish a train epoch')
-    return avg_train_loss, avg_train_recall
+    return avg_train_loss, avg_train_recall, avg_train_prec, avg_train_f1
 
 
 def validate_model(model, device, dtype, batch_size, loss_func, A, valid_loader, epoch, top_k, val_display_step):
@@ -121,7 +121,7 @@ def validate_model(model, device, dtype, batch_size, loss_func, A, valid_loader,
                 print('[Epoch : % d ,Valid batch Index : %d / %d] Valid Loss : %.8f ----- Valid Recall@%d: %.8f / Valid Precision: %.8f / Valid F1: %.8f' %
                       (epoch, valid_i + 1, total_val_batch, avg_val_loss, top_k, avg_val_recall, avg_val_prec, avg_val_f1))
 
-    return avg_val_loss, avg_val_recall
+    return avg_val_loss, avg_val_recall, avg_val_prec, avg_val_f1
 
 
 def test_model(model, device, dtype, batch_size, loss_func, A, test_loader, epoch, top_k, test_display_step):
@@ -163,7 +163,7 @@ def test_model(model, device, dtype, batch_size, loss_func, A, test_loader, epoc
                 print('[Epoch : % d , Test batch_index : %3d --------- Test loss: %.8f ----- Test Recall@%d : %.8f / Test Prec: %.8f / Test F1: %.8f' %
                       (epoch, test_i + 1, avg_test_loss, top_k, avg_test_recall, avg_test_prec, avg_test_f1))
 
-    return avg_test_loss, avg_test_recall
+    return avg_test_loss, avg_test_recall, avg_test_prec, avg_test_f1
 
 torch.set_printoptions(precision=8)
 parser = argparse.ArgumentParser(description='Train model')
@@ -302,44 +302,40 @@ val_losses = []
 val_recalls = []
 test_losses = []
 test_recalls = []
-recall_max = 0.0
+f1_max = 0.0
 loss_min = 10000
 
 for ep in range(epoch):
-    avg_train_loss, avg_train_recall = train_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, optimizer, A, train_loader, ep, top_k, train_display_step)
+    avg_train_loss, avg_train_recall, avg_train_prec, avg_train_f1 = train_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, optimizer, A, train_loader, ep, top_k, train_display_step)
     # train_losses.append(avg_train_loss)
     # train_recalls.append(avg_train_recall)
 
     writer.add_scalar("Loss/train", avg_train_loss, ep)
     writer.add_scalar("Recall/train", avg_train_recall, ep)
-    # writer.add_scalar("Precision/train", avg_train_precision, ep)
-    # writer.add_scalar("F1/train", avg_train_f1, ep)
+    writer.add_scalar("Precision/train", avg_train_prec, ep)
+    writer.add_scalar("F1/train", avg_train_f1, ep)
 
-    avg_val_loss, avg_val_recall = validate_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, A, valid_loader,
+    avg_val_loss, avg_val_recall, avg_val_prec, avg_val_f1 = validate_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, A, valid_loader,
                                                               ep, top_k, val_display_step)
     writer.add_scalar("Loss/val", avg_val_loss, ep)
     writer.add_scalar("Recall/val", avg_val_recall, ep)
-    # writer.add_scalar("Precision/val", avg_val_precision, ep)
-    # writer.add_scalar("F1/val", avg_val_f1, ep)
-    # val_losses.append(avg_val_loss)
-    # val_recalls.append(avg_val_recall)
+    writer.add_scalar("Precision/val", avg_val_prec, ep)
+    writer.add_scalar("F1/val", avg_val_f1, ep)
 
-    avg_test_loss, avg_test_recall = test_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, A, test_loader,
+    avg_test_loss, avg_test_recall, avg_test_prec, avg_test_f1 = test_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, A, test_loader,
                                                             ep, top_k, test_display_step)
-    # test_losses.append(avg_test_loss)
-    # test_recalls.append(avg_test_recall)
     writer.add_scalar("Loss/test", avg_test_loss, ep)
     writer.add_scalar("Recall/test", avg_test_recall, ep)
-    # writer.add_scalar("Precision/test", avg_test_precision, ep)
-    # writer.add_scalar("F1/test", avg_test_f1, ep)
-    if (avg_test_recall > recall_max):
+    writer.add_scalar("Precision/test", avg_test_prec, ep)
+    writer.add_scalar("F1/test", avg_test_f1, ep)
+    if (avg_test_f1 > f1_max):
         score_matrix = []
         print('Test loss decrease from ({:.6f} --> {:.6f}) '.format(loss_min, avg_test_loss))
-        print('Test recall increase from {:.6f} --> {:.6f}'.format(recall_max, avg_test_recall))
+        print('Test recall increase from {:.6f} --> {:.6f}'.format(f1_max, avg_test_f1))
         # check_point.save_ckpt(checkpoint, True, model_name, checkpoint_dir, best_model_dir, ep)
         check_point.save_config_param(output_dir, args.model_name, config_param)
         loss_min = avg_test_loss
-        recall_max = avg_test_recall
+        f1_max = avg_test_f1
         torch.save(rec_sys_model, output_dir+'/best_'+args.model_name+'.pt')
         print('Can save model')
 
