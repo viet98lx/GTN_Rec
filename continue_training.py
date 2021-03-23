@@ -3,18 +3,13 @@ import random
 import torch
 import numpy as np
 import scipy.sparse as sp
-import os
-
-import matplotlib
-import matplotlib.pyplot as plt
-
-
 import utils
 import data_utils
 import check_point
 import model
-import model_utils
 import loss
+from torch.utils.tensorboard import SummaryWriter
+from main import train_model, validate_model, test_model
 
 torch.set_printoptions(precision=8)
 parser = argparse.ArgumentParser(description='Continue training model')
@@ -25,11 +20,13 @@ parser.add_argument('--model_name', type=str, help='name of model', required=Tru
 parser.add_argument('--data_dir', type=str, help='folder contains data', required=True)
 parser.add_argument('--output_dir', type=str, help='folder to save model', required=True)
 parser.add_argument('--config_param_path', type=str, help='folder to save config param', required=True)
+parser.add_argument('--ckpt_path', type=str, help='folder to save checkpoint', required=True)
 parser.add_argument('--lr', type=float, help='learning rate of optimizer', default=0.01)
 parser.add_argument('--top_k', type=int, help='top k predict', default=10)
-parser.add_argument('--cur_epoch', type=int, help='last epoch before interrupt', required=True)
+# parser.add_argument('--cur_epoch', type=int, help='last epoch before interrupt', required=True)
 parser.add_argument('--epsilon', type=float, help='different between loss of two consecutive epoch ', default=0.00000001)
 parser.add_argument('--nb_hop', type=int, help='level of correlation matrix', default=1)
+parser.add_argument('--num_edges', type=int, help='number of adj matrix', default=2)
 parser.add_argument('--device', type=str, help='device for train and predict', default='cpu')
 
 args = parser.parse_args()
@@ -39,10 +36,11 @@ model_name = args.model_name
 data_dir = args.data_dir
 output_dir = args.output_dir
 ckpt_dir = args.ckpt_dir
-best_ckpt_dir = output_dir + '/best_model_checkpoint'
+best_ckpt_dir = output_dir
 nb_hop = args.nb_hop
 config_param_file = args.config_param_path
-cur_epoch = args.cur_epoch
+checkpoint_fpath = args.ckpt_path
+config_param = check_point.load_config_param(config_param_file)
 
 torch.manual_seed(1)
 np.random.seed(2)
@@ -68,106 +66,102 @@ print(nb_test)
 print("---------------------@Build knowledge-------------------------------")
 MAX_SEQ_LENGTH, item_dict, reversed_item_dict, item_probs = utils.build_knowledge(train_instances, validate_instances)
 
-print("#Statistic")
-NB_ITEMS = len(item_dict)
-print(" + Maximum sequence length: ", MAX_SEQ_LENGTH)
-print(" + Total items: ", NB_ITEMS)
-
-print('---------------------Load correlation matrix-------------------')
-
-if (os.path.isfile(data_dir + 'adj_matrix/r_matrix_' +str(nb_hop)+ 'w.npz')):
-    real_adj_matrix = sp.load_npz(data_dir + 'adj_matrix/r_matrix_' +str(nb_hop)+ 'w.npz')
-else:
-    real_adj_matrix = sp.csr_matrix((NB_ITEMS, NB_ITEMS), dtype="float32")
-print('Density of correlation matrix: %.6f' % (real_adj_matrix.nnz * 1.0 / NB_ITEMS / NB_ITEMS))
-
-print('---------------------Load check point-------------------')
-ckpt_path = ckpt_dir + '/' + model_name + '/' + 'epoch_' + str(cur_epoch) + '/' + model_name + '_checkpoint.pt'
-
-config_param = check_point.load_config_param(config_param_file)
-exec_device = torch.device('cuda' if (torch.cuda.is_available() and args.device != 'cpu') else 'cpu')
-data_type = torch.float32
-
-pre_trained_model = model.RecSysModel(config_param, MAX_SEQ_LENGTH, item_probs, real_adj_matrix.todense(), exec_device, data_type)
-pre_trained_model.to(exec_device, dtype= data_type)
-optimizer = torch.optim.RMSprop(pre_trained_model.parameters(), lr= args.lr, weight_decay= 5e-6)
-
-
 print('---------------------Create data loader--------------------')
 train_loader = data_utils.generate_data_loader(train_instances, config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=True)
 valid_loader = data_utils.generate_data_loader(validate_instances, config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=False)
 test_loader = data_utils.generate_data_loader(test_instances, config_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=False)
 
-rec_sys_model, optimizer, cur_epoch, val_loss_min, best_recall, train_losses, train_recalls, val_losses, val_recalls\
-    = check_point.load_ckpt(ckpt_path, pre_trained_model, optimizer)
+### init model ####
+exec_device = torch.device('cuda:{}'.format(args.device[-1]) if ('gpu' in args.device and torch.cuda.is_available()) else 'cpu')
+data_type = torch.float
+# num_nodes = len(item_dict) + len(user_consumption_dict)
+
+norm = True # normalize adj matrix
+edges = []
+
+for i in range(args.num_edges):
+    adj_matrix = sp.load_npz(data_dir + 'adj_matrix/v2_r_matrix_' + str(i+1) + 'w.npz')
+    edges.append(adj_matrix)
+
+############### Dense version ##########################
+for i, edge in enumerate(edges):
+    if i ==0:
+        A = torch.from_numpy(edge.todense()).type(torch.FloatTensor).unsqueeze(-1)
+    else:
+        A = torch.cat([A,torch.from_numpy(edge.todense()).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
+
+# edges.clear()
+num_nodes = len(item_dict)
+A = torch.cat([A,torch.eye(num_nodes).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
+A = A.to(device = exec_device, dtype = data_type)
+config_param['num_edge'] = len(edges)+1
+config_param['num_class'] = len(item_dict) # number items
+
+rec_sys_model = model.GTN_Rec(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
+# multiple_gpu = args.multiple_gpu
+# if multiple_gpu and torch.cuda.device_count() > 1:
+#     print("Let's use", torch.cuda.device_count(), "GPUs!")
+#     rec_sys_model = nn.DataParallel(rec_sys_model)
+
+#### loss and optim ######
 loss_func = loss.Weighted_BCE_Loss()
+# optimizer = torch.optim.Adam(rec_sys_model.parameters(), lr=0.0001)
+optimizer = torch.optim.RMSprop(rec_sys_model.parameters(), lr=args.lr)
 
-top_k = config_param['top_k']
-train_display_step = 300
-val_display_step = 60
-test_display_step = 10
+rec_sys_model, optimizer = check_point.load_ckpt(checkpoint_fpath, model, optimizer)
+
+writer = SummaryWriter()
 epoch = args.epoch
+top_k = args.topk
+train_display_step = 300
+val_display_step = 100
+test_display_step = 30
+train_losses = []
+train_recalls = []
+val_losses = []
+val_recalls = []
+test_losses = []
+test_recalls = []
+f1_max = 0.0
+loss_min = 10000
 
-loss_min = val_loss_min
-recall_max = best_recall
-epsilon = args.epsilon
+for ep in range(epoch):
+    avg_train_loss, avg_train_recall, avg_train_prec, avg_train_f1 = train_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, optimizer, A, train_loader, ep, top_k, train_display_step)
+    # train_losses.append(avg_train_loss)
+    # train_recalls.append(avg_train_recall)
 
-# train_losses = []
-# val_losses = []
-# train_recalls = []
-# val_recalls = []
-# test_losses = []
-# test_recalls = []
+    writer.add_scalar("Loss/train", avg_train_loss, ep)
+    writer.add_scalar("Recall/train", avg_train_recall, ep)
+    writer.add_scalar("Precision/train", avg_train_prec, ep)
+    writer.add_scalar("F1/train", avg_train_f1, ep)
 
-print('-------------------Continue Training Model---------------------')
-
-############################ Train Model #############################
-
-# scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
-
-for ep in range(cur_epoch+1, epoch):
-
-    rec_sys_model, optimizer, avg_train_loss, avg_train_recall = model_utils.train_model(rec_sys_model, loss_func, optimizer, train_loader,
-                                                                                         ep, top_k, train_display_step)
-    train_losses.append(avg_train_loss)
-    train_recalls.append(avg_train_recall)
-
-    avg_val_loss, avg_val_recall = model_utils.validate_model(rec_sys_model, loss_func, valid_loader,
+    avg_val_loss, avg_val_recall, avg_val_prec, avg_val_f1 = validate_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, A, valid_loader,
                                                               ep, top_k, val_display_step)
-    val_losses.append(avg_val_loss)
-    val_recalls.append(avg_val_recall)
+    writer.add_scalar("Loss/val", avg_val_loss, ep)
+    writer.add_scalar("Recall/val", avg_val_recall, ep)
+    writer.add_scalar("Precision/val", avg_val_prec, ep)
+    writer.add_scalar("F1/val", avg_val_f1, ep)
 
-    # avg_test_loss, avg_test_recall = model_utils.test_model(rec_sys_model, loss_func, test_loader,
-    #                                                         ep + 1, top_k, test_display_step)
-    # test_losses.append(avg_test_loss)
-    # test_recalls.append(avg_test_recall)
+    avg_test_loss, avg_test_recall, avg_test_prec, avg_test_f1 = test_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, A, test_loader,
+                                                            ep, top_k, test_display_step)
+    writer.add_scalar("Loss/test", avg_test_loss, ep)
+    writer.add_scalar("Recall/test", avg_test_recall, ep)
+    writer.add_scalar("Precision/test", avg_test_prec, ep)
+    writer.add_scalar("F1/test", avg_test_f1, ep)
 
-    # scheduler.step()
-
-    checkpoint = {
-        'epoch': ep,
-        'valid_loss_min': avg_val_loss,
-        'best_recall': avg_val_recall,
-        'state_dict': rec_sys_model.state_dict(),
-        'optimizer': optimizer.state_dict(),
-        'val_loss_list': val_losses,
-        'val_recall_list': val_recalls,
-        'train_loss_list': train_losses,
-        'train_recall_list': train_recalls
+    state = {'state_dict': rec_sys_model.state_dict(),
+             'optimizer': optimizer.state_dict(),
+             'lr': args.lr,
+             'seed': args.seed
     }
-    # save checkpoint
-    check_point.save_ckpt(checkpoint, False, model_name, ckpt_dir, best_ckpt_dir, ep)
-    check_point.save_config_param(ckpt_dir, model_name, config_param)
-
-    if ((loss_min - avg_val_loss) / loss_min > epsilon and avg_val_recall > recall_max):
-        print('Test loss decrease from ({:.5f} --> {:.5f}) '.format(loss_min, avg_val_loss))
+    check_point.save_ckpt(state, args.model_name, output_dir, ep)
+    if (avg_test_f1 > f1_max):
+        score_matrix = []
+        print('Test loss decrease from ({:.6f} --> {:.6f}) '.format(loss_min, avg_test_loss))
+        print('Test f1 increase from {:.6f} --> {:.6f}'.format(f1_max, avg_test_f1))
+        # check_point.save_ckpt(checkpoint, True, model_name, checkpoint_dir, best_model_dir, ep)
+        check_point.save_config_param(output_dir, args.model_name, config_param)
+        loss_min = avg_test_loss
+        f1_max = avg_test_f1
+        torch.save(rec_sys_model, output_dir+'/best_'+args.model_name+'.pt')
         print('Can save model')
-        check_point.save_ckpt(checkpoint, True, model_name, ckpt_dir, best_ckpt_dir, ep)
-        check_point.save_config_param(best_ckpt_dir, model_name, config_param)
-        loss_min = avg_val_loss
-        recall_max = avg_val_recall
-
-    print('-' * 100)
-    ckpt_path = ckpt_dir + model_name + '/epoch_' + str(ep) + '/'
-    utils.plot_loss(train_losses, val_losses, ckpt_path)
-    utils.plot_recall(train_recalls, val_recalls, ckpt_path)

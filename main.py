@@ -328,10 +328,17 @@ for ep in range(epoch):
     writer.add_scalar("Recall/test", avg_test_recall, ep)
     writer.add_scalar("Precision/test", avg_test_prec, ep)
     writer.add_scalar("F1/test", avg_test_f1, ep)
+
+    state = {'state_dict': rec_sys_model.state_dict(),
+             'optimizer': optimizer.state_dict(),
+             'lr': args.lr,
+             'seed': args.seed
+    }
+    check_point.save_ckpt(state, args.model_name, output_dir, ep)
     if (avg_test_f1 > f1_max):
         score_matrix = []
         print('Test loss decrease from ({:.6f} --> {:.6f}) '.format(loss_min, avg_test_loss))
-        print('Test recall increase from {:.6f} --> {:.6f}'.format(f1_max, avg_test_f1))
+        print('Test f1 increase from {:.6f} --> {:.6f}'.format(f1_max, avg_test_f1))
         # check_point.save_ckpt(checkpoint, True, model_name, checkpoint_dir, best_model_dir, ep)
         check_point.save_config_param(output_dir, args.model_name, config_param)
         loss_min = avg_test_loss
