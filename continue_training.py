@@ -112,7 +112,6 @@ optimizer = torch.optim.RMSprop(rec_sys_model.parameters(), lr=args.lr)
 
 rec_sys_model, optimizer = check_point.load_ckpt(checkpoint_fpath, model, optimizer)
 
-writer = SummaryWriter()
 epoch = args.epoch
 top_k = args.topk
 train_display_step = 300
@@ -126,6 +125,12 @@ test_losses = []
 test_recalls = []
 f1_max = 0.0
 loss_min = 10000
+
+log_dir = 'seed_{}'.format(seed)
+# if not os.path.exists(log_dir):
+#     os.makedirs(log_dir)
+########## train #################
+writer = SummaryWriter(log_dir='runs/'+log_dir, comment=args.model_name)
 
 for ep in range(epoch):
     avg_train_loss, avg_train_recall, avg_train_prec, avg_train_f1 = train_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, optimizer, A, train_loader, ep, top_k, train_display_step)
@@ -146,7 +151,7 @@ for ep in range(epoch):
 
     avg_test_loss, avg_test_recall, avg_test_prec, avg_test_f1 = test_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, A, test_loader,
                                                             ep, top_k, test_display_step)
-    writer.add_scalar("Loss/test", avg_test_loss, ep)
+    writer.add_;scalar("Loss/test", avg_test_loss, ep)
     writer.add_scalar("Recall/test", avg_test_recall, ep)
     writer.add_scalar("Precision/test", avg_test_prec, ep)
     writer.add_scalar("F1/test", avg_test_f1, ep)
