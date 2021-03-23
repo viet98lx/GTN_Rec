@@ -289,11 +289,11 @@ print(A[0][0].device)
 # print(rec_sys_model.device)
 # print(X_feature.device)
 
-log_dir = 'seed_{}'.format(seed)
-# if not os.path.exists(log_dir):
-#     os.makedirs(log_dir)
+log_dir = 'seed_{}_{}'.format(seed, args.model_name)
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 ########## train #################
-writer = SummaryWriter(log_dir='runs/'+log_dir+'_'+args.model_name)
+writer = SummaryWriter(log_dir='runs/'+log_dir)
 epoch = args.epoch
 top_k = args.topk
 train_display_step = 300
