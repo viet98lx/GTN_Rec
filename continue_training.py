@@ -151,7 +151,7 @@ for ep in range(epoch):
 
     avg_test_loss, avg_test_recall, avg_test_prec, avg_test_f1 = test_model(rec_sys_model, exec_device, data_type, config_param['batch_size'], loss_func, A, test_loader,
                                                             ep, top_k, test_display_step)
-    writer.add_;scalar("Loss/test", avg_test_loss, ep)
+    writer.add_scalar("Loss/test", avg_test_loss, ep)
     writer.add_scalar("Recall/test", avg_test_recall, ep)
     writer.add_scalar("Precision/test", avg_test_prec, ep)
     writer.add_scalar("F1/test", avg_test_f1, ep)
