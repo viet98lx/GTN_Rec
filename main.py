@@ -267,9 +267,9 @@ for i, edge in enumerate(edges):
 
 # edges.clear()
 num_nodes = len(item_dict)
-A = torch.cat([A,torch.eye(num_nodes).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
+# A = torch.cat([A,torch.eye(num_nodes).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
 A = A.to(device = exec_device, dtype = data_type)
-config_param['num_edge'] = len(edges)+1
+config_param['num_edge'] = len(edges)
 config_param['num_class'] = len(item_dict) # number items
 
 rec_sys_model = model.GTN_Rec(config_param, MAX_SEQ_LENGTH, item_probs, exec_device, data_type, num_nodes, norm)
