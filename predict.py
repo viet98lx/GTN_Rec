@@ -156,4 +156,4 @@ if(not os.path.exists(log_folder)):
 
 nb_predict = args.nb_predict
 result_file = log_folder + '/' + prefix_model_name + '_predict_top_' + str(nb_predict) + '.txt'
-generate_predict(load_model, test_loader, result_file, reversed_item_dict, nb_predict, batch_size)
+generate_predict(load_model, A, test_loader, result_file, reversed_item_dict, nb_predict, batch_size)
