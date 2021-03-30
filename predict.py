@@ -145,7 +145,7 @@ batch_size = args.batch_size
 test_loader = data_utils.generate_data_loader(test_instances, batch_size, item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=True)
 model_path = 'best_' + prefix_model_name + '.pt'
 load_model = torch.load(ckpt_dir+'/'+model_path, map_location='cpu')
-load_model.to(device = exec_device, dtype = data_type)
+load_model = load_model.to(device = exec_device, dtype = data_type)
 load_model.device = exec_device
 
 log_folder = os.path.join(args.log_result_dir, prefix_model_name)
