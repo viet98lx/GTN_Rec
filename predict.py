@@ -7,7 +7,7 @@ import model
 import scipy.sparse as sp
 import data_utils
 
-def generate_predict(model, data_loader, result_file, reversed_item_dict, number_predict, batch_size):
+def generate_predict(model, A, data_loader, result_file, reversed_item_dict, number_predict, batch_size):
     device = model.device
     nb_test_batch = len(data_loader.dataset) // batch_size
     if len(data_loader.dataset) % model.batch_size == 0:
@@ -20,11 +20,11 @@ def generate_predict(model, data_loader, result_file, reversed_item_dict, number
         f.write('Predict result: ')
         for i, data_pack in enumerate(data_loader,0):
             data_x, data_seq_len, data_y = data_pack
-            x_ = data_x.to_dense().to(dtype = model.d_type, device = device)
+            x_ = data_x.to_dense().to(dtype = model.dtype, device = device)
             real_batch_size = x_.size()[0]
-            hidden = model.init_hidden(real_batch_size)
-            y_ = data_y.to(dtype = model.d_type, device = device)
-            predict_ = model(x_, data_seq_len, hidden)
+            # hidden = model.init_hidden(real_batch_size)
+            y_ = data_y.to(dtype = model.dtype, device = device)
+            predict_ = model(A, data_seq_len, x_)
             sigmoid_pred = torch.sigmoid(predict_)
             topk_result = sigmoid_pred.topk(dim=-1, k= number_predict, sorted=True)
             indices = topk_result.indices
@@ -42,34 +42,34 @@ def generate_predict(model, data_loader, result_file, reversed_item_dict, number
                 for col in range(0, indices.size()[1]):
                     f.write('| ' + str(reversed_item_dict[indices[row][col].item()]) + ': %.8f' % (values[row][col].item()) + ' ')
 
-def recall_for_data(model, data_loader, topK, batch_size):
-    device = model.device
-    nb_batch = len(data_loader.dataset) // batch_size
-    if len(data_loader.dataset) % batch_size == 0:
-        total_batch = nb_batch
-    else :
-        total_batch = nb_batch + 1
-    print(total_batch)
-    list_correct_predict = []
-    list_actual_size = []
-
-    model.eval()
-    for idx, data_pack in enumerate(data_loader,0):
-        x_, data_seq_len, y_ = data_pack
-        x_test = x_.to_dense().to(dtype = model.d_type, device = device)
-        real_batch_size = x_test.size()[0]
-        hidden = model.init_hidden(real_batch_size)
-        y_test = y_.to(device = device, dtype = model.d_type)
-
-        logits_predict = model(x_test, data_seq_len, hidden)
-
-        predict_basket = utils.predict_top_k(logits_predict, topK, real_batch_size, model.device, model.nb_items)
-        correct_predict = predict_basket * y_test
-        nb_correct = (correct_predict != 0.0).sum(dim = -1)
-        actual_basket_size = (y_test != 0.0).sum(dim = -1)
-        for i in range(0, real_batch_size):
-            list_correct_predict.append(nb_correct[i].item())
-            list_actual_size.append(actual_basket_size[i].item())
+# def recall_for_data(model, A, data_loader, topK, batch_size):
+#     device = model.device
+#     nb_batch = len(data_loader.dataset) // batch_size
+#     if len(data_loader.dataset) % batch_size == 0:
+#         total_batch = nb_batch
+#     else :
+#         total_batch = nb_batch + 1
+#     print(total_batch)
+#     list_correct_predict = []
+#     list_actual_size = []
+#
+#     model.eval()
+#     for idx, data_pack in enumerate(data_loader,0):
+#         x_, data_seq_len, y_ = data_pack
+#         x_test = x_.to_dense().to(dtype = model.d_type, device = device)
+#         real_batch_size = x_test.size()[0]
+#         hidden = model.init_hidden(real_batch_size)
+#         y_test = y_.to(device = device, dtype = model.d_type)
+#
+#         logits_predict = model(A, data_seq_len, x_test)
+#
+#         predict_basket = utils.predict_top_k(logits_predict, topK, real_batch_size, model.nb_items)
+#         correct_predict = predict_basket * y_test
+#         nb_correct = (correct_predict != 0.0).sum(dim = -1)
+#         actual_basket_size = (y_test != 0.0).sum(dim = -1)
+#         for i in range(0, real_batch_size):
+#             list_correct_predict.append(nb_correct[i].item())
+#             list_actual_size.append(actual_basket_size[i].item())
 
 parser = argparse.ArgumentParser(description='Generate predict')
 parser.add_argument('--ckpt_dir', type=str, help='folder contains check point', required=True)
