@@ -77,6 +77,7 @@ parser.add_argument('--model_name', type=str, help='name of model', required=Tru
 # parser.add_argument('--epoch', type=int, help='last epoch before interrupt', required=True)
 parser.add_argument('--data_dir', type=str, help='folder contains data', required=True)
 parser.add_argument('--device', type=str, help='device for train and predict', default='cpu')
+parser.add_argument('--num_edges', type=int, help='Number of edges', default=1)
 # parser.add_argument('--nb_hop', type=int, help='level of correlation matrix', default=1)
 parser.add_argument('--batch_size', type=int, help='batch size predict', default=8)
 parser.add_argument('--nb_predict', type=int, help='number items predicted', default=10)
