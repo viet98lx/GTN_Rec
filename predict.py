@@ -9,6 +9,7 @@ import data_utils
 
 def generate_predict(model, A, data_loader, result_file, reversed_item_dict, number_predict, batch_size):
     device = model.device
+    print("device of model", next(model.parameters()).device)
     nb_test_batch = len(data_loader.dataset) // batch_size
     if len(data_loader.dataset) % model.batch_size == 0:
         total_batch = nb_test_batch
@@ -147,6 +148,7 @@ model_path = 'best_' + prefix_model_name + '.pt'
 load_model = torch.load(ckpt_dir+'/'+model_path, map_location='cpu')
 load_model = load_model.to(device = exec_device, dtype = data_type)
 load_model.device = exec_device
+load_model.threshold.to(device = exec_device, dtype = data_type)
 
 log_folder = os.path.join(args.log_result_dir, prefix_model_name)
 if(not os.path.exists(log_folder)):
