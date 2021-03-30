@@ -9,7 +9,7 @@ import data_utils
 
 def generate_predict(model, A, data_loader, result_file, reversed_item_dict, number_predict, batch_size):
     device = model.device
-    print("device of model", next(model.parameters()).device)
+    # print("device of model", next(model.parameters()).device)
     nb_test_batch = len(data_loader.dataset) // batch_size
     if len(data_loader.dataset) % model.batch_size == 0:
         total_batch = nb_test_batch
@@ -22,8 +22,8 @@ def generate_predict(model, A, data_loader, result_file, reversed_item_dict, num
         for i, data_pack in enumerate(data_loader,0):
             data_x, data_seq_len, data_y = data_pack
             x_ = data_x.to_dense().to(dtype = model.dtype, device = device)
-            print("Device: ",device)
-            real_batch_size = x_.size()[0]
+            # print("Device: ",device)
+            # real_batch_size = x_.size()[0]
             # hidden = model.init_hidden(real_batch_size)
             y_ = data_y.to(dtype = model.dtype, device = device)
             predict_ = model(A, data_seq_len, x_)
