@@ -215,6 +215,13 @@ output_dir = args.output_dir
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
+best_model_dir = output_dir + '/best_model/'
+try:
+    os.makedirs(best_model_dir, exist_ok = True)
+    print("Directory '%s' created successfully" % best_model_dir)
+except OSError as error:
+    print("Directory '%s' can not be created" % best_model_dir)
+
 seed = args.seed
 torch.manual_seed(seed)
 np.random.seed(seed)
@@ -346,7 +353,7 @@ for ep in range(epoch):
         check_point.save_config_param(output_dir, args.model_name, config_param)
         loss_min = avg_test_loss
         f1_max = avg_test_f1
-        torch.save(rec_sys_model, output_dir+'/best_'+args.model_name+'.pt')
+        torch.save(rec_sys_model, best_model_dir+'/best_'+args.model_name+'.pt')
         print('Can save model')
 
         # avg_R_score, avg_P_score, avg_F1_score = matrix_score_utils.F1_matrix_score_for_data(rec_sys_model, A,

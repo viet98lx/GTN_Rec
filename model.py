@@ -39,8 +39,8 @@ class GTN_Rec(nn.Module):
         self.bn = nn.BatchNorm1d(self.nb_items)
         self.h2item_score = nn.Linear(in_features=self.rnn_units, out_features=self.nb_items, bias=True)
         item_bias = torch.ones(self.nb_items) / self.nb_items
-        self.I_B = nn.Parameter(data=item_bias.to(dtype=self.dtype, device=self.device))
-        self.threshold = torch.Tensor([0.0]).to(self.device)
+        self.I_B = nn.Parameter(data=item_bias)
+        self.threshold = nn.Parameter(data=torch.Tensor([0.0]))
         self.reset_parameters()
 
     def reset_parameters(self):
