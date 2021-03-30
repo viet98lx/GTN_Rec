@@ -21,6 +21,7 @@ def generate_predict(model, A, data_loader, result_file, reversed_item_dict, num
         for i, data_pack in enumerate(data_loader,0):
             data_x, data_seq_len, data_y = data_pack
             x_ = data_x.to_dense().to(dtype = model.dtype, device = device)
+            print("Device: ",device)
             real_batch_size = x_.size()[0]
             # hidden = model.init_hidden(real_batch_size)
             y_ = data_y.to(dtype = model.dtype, device = device)
@@ -88,7 +89,6 @@ args = parser.parse_args()
 prefix_model_name = args.model_name
 ckpt_dir = args.ckpt_dir
 data_dir = args.data_dir
-
 
 ### init model ####
 exec_device = torch.device('cuda:{}'.format(args.device[-1]) if ('gpu' in args.device and torch.cuda.is_available()) else 'cpu')
