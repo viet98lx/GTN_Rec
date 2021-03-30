@@ -34,44 +34,16 @@ def generate_predict(model, A, data_loader, result_file, reversed_item_dict, num
             values = topk_result.values
 
             for row in range(0, indices.size()[0]):
-                f.write('\n')
-                f.write('ground truth: ')
+                f.write('ground_truth | ')
                 ground_truth = y_[row].nonzero().squeeze(dim=-1)
                 for idx_key in range(0, ground_truth.size()[0]):
                     f.write(str(reversed_item_dict[ground_truth[idx_key].item()]) + " ")
                 f.write('\n')
-                f.write('predicted items: ')
+                f.write('predicted_items ')
                 for col in range(0, indices.size()[1]):
-                    f.write('| ' + str(reversed_item_dict[indices[row][col].item()]) + ': %.8f' % (values[row][col].item()) + ' ')
-
-# def recall_for_data(model, A, data_loader, topK, batch_size):
-#     device = model.device
-#     nb_batch = len(data_loader.dataset) // batch_size
-#     if len(data_loader.dataset) % batch_size == 0:
-#         total_batch = nb_batch
-#     else :
-#         total_batch = nb_batch + 1
-#     print(total_batch)
-#     list_correct_predict = []
-#     list_actual_size = []
-#
-#     model.eval()
-#     for idx, data_pack in enumerate(data_loader,0):
-#         x_, data_seq_len, y_ = data_pack
-#         x_test = x_.to_dense().to(dtype = model.d_type, device = device)
-#         real_batch_size = x_test.size()[0]
-#         hidden = model.init_hidden(real_batch_size)
-#         y_test = y_.to(device = device, dtype = model.d_type)
-#
-#         logits_predict = model(A, data_seq_len, x_test)
-#
-#         predict_basket = utils.predict_top_k(logits_predict, topK, real_batch_size, model.nb_items)
-#         correct_predict = predict_basket * y_test
-#         nb_correct = (correct_predict != 0.0).sum(dim = -1)
-#         actual_basket_size = (y_test != 0.0).sum(dim = -1)
-#         for i in range(0, real_batch_size):
-#             list_correct_predict.append(nb_correct[i].item())
-#             list_actual_size.append(actual_basket_size[i].item())
+                    f.write('| ' + str(reversed_item_dict[indices[row][col].item()]) + ':%.8f' % (
+                        values[row][col].item()) + ' ')
+                f.write('\n')
 
 parser = argparse.ArgumentParser(description='Generate predict')
 parser.add_argument('--ckpt_dir', type=str, help='folder contains check point', required=True)
