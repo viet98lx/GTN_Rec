@@ -1,15 +1,19 @@
 import argparse
 import numpy as np
 import csv
+import os
 
 parser = argparse.ArgumentParser(description='Calculate recall')
 parser.add_argument('--result_file', type=str, help='file contains predicted result', required=True)
-parser.add_argument('--score_file', type=str, help='file contains predicted result', required=True)
+parser.add_argument('--score_file', type=str, help='file contains score result', required=True)
+# parser.add_argument('--log_result_folder', type=str, help='folder result', required=True)
 parser.add_argument('--model_name', type=str, help='file contains predicted result', required=True)
 parser.add_argument('--top_k', type=int, help='top k highest rank items', required=True)
 args = parser.parse_args()
 result_file = args.result_file
 score_file = args.score_file
+# model_name = args.model_name
+# log_folder = os.path.join(args.log_result_folder, model_name)
 model_name = args.model_name
 top_k = args.top_k
 list_seq = []
