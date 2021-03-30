@@ -1,11 +1,16 @@
 import argparse
 import numpy as np
+import csv
 
 parser = argparse.ArgumentParser(description='Calculate recall')
 parser.add_argument('--result_file', type=str, help='file contains predicted result', required=True)
+parser.add_argument('--score_file', type=str, help='file contains predicted result', required=True)
+parser.add_argument('--model_name', type=str, help='file contains predicted result', required=True)
 parser.add_argument('--top_k', type=int, help='top k highest rank items', required=True)
 args = parser.parse_args()
 result_file = args.result_file
+score_file = args.score_file
+model_name = args.model_name
 top_k = args.top_k
 list_seq = []
 list_seq_topk_predicted = []
@@ -45,12 +50,20 @@ for i, ground_truth in enumerate(list_seq):
   else:
       f1_score = 2*recall_score*precision_score/(recall_score + precision_score)
   list_f1.append(f1_score)
-# print("Len of recall: %d" % len(list_recall))
-# print("Len of precision: %d " % len(list_precision))
-# print("Len of F1-score: %d " % len(list_f1))
-# print("Number zeros: %d" % list_recall.count(0))
-# print("Number zeros: %d" % list_precision.count(0))
-# print("Number zeros: %d" % list_f1.count(0))
-print("Recall@%d : %.6f" % (top_k, np.array(list_recall).mean()))
-print("Precision@%d : %.6f" % (top_k, np.array(list_precision).mean()))
-print("F1-score@%d : %.6f" % (top_k, np.array(list_f1).mean()))
+
+# f = open(score_file, 'w')
+# f.write("Recall@%d : %.6f" % (top_k, np.array(list_recall).mean()))
+# f.write("\n")
+# f.write("Precision@%d : %.6f" % (top_k, np.array(list_precision).mean()))
+# f.write("\n")
+# f.write("F1-score@%d : %.6f" % (top_k, np.array(list_f1).mean()))
+recall = np.array(list_recall).mean()
+prec = np.array(list_precision).mean()
+f1 = np.array(list_f1).mean()
+with open(score_file,'a',newline='') as f:
+    writer=csv.writer(f)
+    writer.writerow([model_name, top_k, recall, prec, f1])
+
+print("Recall@%d : %.6f" % (top_k, recall))
+print("Precision@%d : %.6f" % (top_k, prec))
+print("F1-score@%d : %.6f" % (top_k, f1))

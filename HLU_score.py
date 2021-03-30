@@ -17,16 +17,31 @@ parser.add_argument('--batch_size', type=int, help='batch size predict', default
 
 args = parser.parse_args()
 
-prefix_model_ckpt = args.model_name
+prefix_model_name = args.model_name
 ckpt_dir = args.ckpt_dir
 data_dir = args.data_dir
-real_adj_matrix = sp.load_npz(data_dir + 'adj_matrix/r_matrix_'+ str(args.nb_hop) + 'w.npz')
 
-ckpt_path = ckpt_dir + '/' + prefix_model_ckpt + '/' + 'epoch_' + str(args.epoch) + '/' + prefix_model_ckpt + '_checkpoint.pt'
-config_param_file = ckpt_dir + '/' + prefix_model_ckpt + '/' + prefix_model_ckpt + '_config.json'
+### init model ####
+exec_device = torch.device('cuda:{}'.format(args.device[-1]) if ('gpu' in args.device and torch.cuda.is_available()) else 'cpu')
+data_type = torch.float
+
+norm = True # normalize adj matrix
+edges = []
+
+for i in range(args.num_edges):
+    adj_matrix = sp.load_npz(data_dir + 'adj_matrix/v2_r_matrix_' + str(i+1) + 'w.npz')
+    edges.append(adj_matrix)
+
+############### Dense version ##########################
+for i, edge in enumerate(edges):
+    if i ==0:
+        A = torch.from_numpy(edge.todense()).type(torch.FloatTensor).unsqueeze(-1)
+    else:
+        A = torch.cat([A,torch.from_numpy(edge.todense()).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
+
+# ckpt_path = ckpt_dir + '/' + prefix_model_ckpt + '/' + 'epoch_' + str(args.epoch) + '/' + prefix_model_ckpt + '_checkpoint.pt'
+config_param_file = ckpt_dir + '/' + prefix_model_name + '_config.json'
 load_param = check_point.load_config_param(config_param_file)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model_data_type = torch.float32
 
 train_data_path = data_dir + 'train.txt'
 train_instances = utils.read_instances_lines_from_file(train_data_path)
@@ -48,24 +63,19 @@ print(nb_test)
 print("@Build knowledge")
 MAX_SEQ_LENGTH, item_dict, reversed_item_dict, item_probs = utils.build_knowledge(train_instances, validate_instances)
 
-print("#Statistic")
-NB_ITEMS = len(item_dict)
-print(" + Maximum sequence length: ", MAX_SEQ_LENGTH)
-print(" + Total items: ", NB_ITEMS)
-print('density of C matrix: %.6f' % (real_adj_matrix.nnz * 1.0 / NB_ITEMS / NB_ITEMS))
+num_nodes = len(item_dict)
+# A = torch.cat([A,torch.eye(num_nodes).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
+A = A.to(device = exec_device, dtype = data_type)
 
 batch_size = args.batch_size
 # train_loader = data_utils.generate_data_loader(train_instances, load_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=True)
 # valid_loader = data_utils.generate_data_loader(validate_instances, load_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=False)
-test_loader = data_utils.generate_data_loader(test_instances, batch_size, item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=False)
+test_loader = data_utils.generate_data_loader(test_instances, batch_size, item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=True)
+model_path = 'best_' + prefix_model_name + '.pt'
+load_model = torch.load(ckpt_dir+'/'+model_path)
 
-pre_trained_model = model.RecSysModel(load_param, MAX_SEQ_LENGTH, item_probs, real_adj_matrix.todense(), device, model_data_type)
-pre_trained_model.to(device, dtype= model_data_type)
-optimizer = torch.optim.RMSprop(pre_trained_model.parameters(), lr= 0.001)
 
-load_model, _, _, _, _, _, _, _, _ = check_point.load_ckpt(ckpt_path, pre_trained_model, optimizer)
-
-def HLU_score_for_data(model, data_loader, batch_size):
+def HLU_score_for_data(model, A, data_loader, batch_size):
     device = model.device
     nb_batch = len(data_loader.dataset) // batch_size
     if len(data_loader.dataset) % batch_size == 0:
@@ -79,11 +89,11 @@ def HLU_score_for_data(model, data_loader, batch_size):
     model.eval()
     for i, data_pack in enumerate(data_loader, 0):
         data_x, data_seq_len, data_y = data_pack
-        x_ = data_x.to_dense().to(dtype=model.d_type, device=device)
+        x_ = data_x.to_dense().to(dtype=model.dtype, device=device)
         real_batch_size = x_.size()[0]
-        hidden = model.init_hidden(real_batch_size)
-        y_ = data_y.to(dtype=model.d_type, device=device)
-        predict_ = model(x_, data_seq_len, hidden)
+        # hidden = model.init_hidden(real_batch_size)
+        y_ = data_y.to(dtype=model.dtype, device=device)
+        predict_ = model(A, data_seq_len, x_)
         sigmoid_pred = torch.sigmoid(predict_)
         sorted_rank, indices = torch.sort(sigmoid_pred, descending = True)
         for seq_idx, a_seq_idx in enumerate(y_):

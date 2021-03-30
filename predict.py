@@ -74,25 +74,44 @@ def recall_for_data(model, data_loader, topK, batch_size):
 parser = argparse.ArgumentParser(description='Generate predict')
 parser.add_argument('--ckpt_dir', type=str, help='folder contains check point', required=True)
 parser.add_argument('--model_name', type=str, help='name of model', required=True)
-parser.add_argument('--epoch', type=int, help='last epoch before interrupt', required=True)
+# parser.add_argument('--epoch', type=int, help='last epoch before interrupt', required=True)
 parser.add_argument('--data_dir', type=str, help='folder contains data', required=True)
-parser.add_argument('--nb_hop', type=int, help='level of correlation matrix', default=1)
+parser.add_argument('--device', type=str, help='device for train and predict', default='cpu')
+# parser.add_argument('--nb_hop', type=int, help='level of correlation matrix', default=1)
 parser.add_argument('--batch_size', type=int, help='batch size predict', default=8)
 parser.add_argument('--nb_predict', type=int, help='number items predicted', default=10)
 parser.add_argument('--log_result_dir', type=str, help='folder to save result', required=True)
 
 args = parser.parse_args()
 
-prefix_model_ckpt = args.model_name
+prefix_model_name = args.model_name
 ckpt_dir = args.ckpt_dir
 data_dir = args.data_dir
-real_adj_matrix = sp.load_npz(data_dir + 'adj_matrix/r_matrix_'+ str(args.nb_hop) + 'w.npz')
 
-ckpt_path = ckpt_dir + '/' + prefix_model_ckpt + '/' + 'epoch_' + str(args.epoch) + '/' + prefix_model_ckpt + '_checkpoint.pt'
-config_param_file = ckpt_dir + '/' + prefix_model_ckpt + '/' + prefix_model_ckpt + '_config.json'
+
+### init model ####
+exec_device = torch.device('cuda:{}'.format(args.device[-1]) if ('gpu' in args.device and torch.cuda.is_available()) else 'cpu')
+data_type = torch.float
+
+norm = True # normalize adj matrix
+edges = []
+
+for i in range(args.num_edges):
+    adj_matrix = sp.load_npz(data_dir + 'adj_matrix/v2_r_matrix_' + str(i+1) + 'w.npz')
+    edges.append(adj_matrix)
+
+############### Dense version ##########################
+for i, edge in enumerate(edges):
+    if i ==0:
+        A = torch.from_numpy(edge.todense()).type(torch.FloatTensor).unsqueeze(-1)
+    else:
+        A = torch.cat([A,torch.from_numpy(edge.todense()).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
+
+# ckpt_path = ckpt_dir + '/' + prefix_model_ckpt + '/' + 'epoch_' + str(args.epoch) + '/' + prefix_model_ckpt + '_checkpoint.pt'
+config_param_file = ckpt_dir + '/' + prefix_model_name + '_config.json'
 load_param = check_point.load_config_param(config_param_file)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model_data_type = torch.float32
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# model_data_type = torch.float32
 
 train_data_path = data_dir + 'train.txt'
 train_instances = utils.read_instances_lines_from_file(train_data_path)
@@ -114,24 +133,19 @@ print(nb_test)
 print("@Build knowledge")
 MAX_SEQ_LENGTH, item_dict, reversed_item_dict, item_probs = utils.build_knowledge(train_instances, validate_instances)
 
-print("#Statistic")
-NB_ITEMS = len(item_dict)
-print(" + Maximum sequence length: ", MAX_SEQ_LENGTH)
-print(" + Total items: ", NB_ITEMS)
-print('density of C matrix: %.6f' % (real_adj_matrix.nnz * 1.0 / NB_ITEMS / NB_ITEMS))
+# edges.clear()
+num_nodes = len(item_dict)
+# A = torch.cat([A,torch.eye(num_nodes).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
+A = A.to(device = exec_device, dtype = data_type)
 
 batch_size = args.batch_size
 # train_loader = data_utils.generate_data_loader(train_instances, load_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=True)
 # valid_loader = data_utils.generate_data_loader(validate_instances, load_param['batch_size'], item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=False)
 test_loader = data_utils.generate_data_loader(test_instances, batch_size, item_dict, MAX_SEQ_LENGTH, is_bseq=True, is_shuffle=True)
+model_path = 'best_' + prefix_model_name + '.pt'
+load_model = torch.load(ckpt_dir+'/'+model_path)
 
-pre_trained_model = model.RecSysModel(load_param, MAX_SEQ_LENGTH, item_probs, real_adj_matrix.todense(), device, model_data_type)
-pre_trained_model.to(device, dtype= model_data_type)
-optimizer = torch.optim.RMSprop(pre_trained_model.parameters(), lr= 0.05)
-
-load_model, _, _, _, _, _, _, _, _ = check_point.load_ckpt(ckpt_path, pre_trained_model, optimizer)
-
-log_folder = os.path.join(args.log_result_dir, prefix_model_ckpt)
+log_folder = os.path.join(args.log_result_dir, prefix_model_name)
 if(not os.path.exists(log_folder)):
   try:
     os.makedirs(log_folder, exist_ok = True)
@@ -140,5 +154,5 @@ if(not os.path.exists(log_folder)):
       print("OS folder error")
 
 nb_predict = args.nb_predict
-result_file = log_folder + '/' + prefix_model_ckpt + '_predict_top_' + str(nb_predict) + '.txt'
+result_file = log_folder + '/' + prefix_model_name + '_predict_top_' + str(nb_predict) + '.txt'
 generate_predict(load_model, test_loader, result_file, reversed_item_dict, nb_predict, batch_size)
