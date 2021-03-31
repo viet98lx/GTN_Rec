@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import csv
 import os
+import re
 
 parser = argparse.ArgumentParser(description='Calculate recall')
 parser.add_argument('--result_file', type=str, help='file contains predicted result', required=True)
@@ -21,19 +22,21 @@ list_seq_topk_predicted = []
 with open(result_file, 'r') as f:
     lines = f.readlines()
     for i, line in enumerate(lines):
-        if(i == 0):
-            continue
-        if(i % 2 == 1):
-            ground_truth = line.split(':')[-1]
-            list_item = ground_truth.split()
+        # if(i == 0):
+        #     continue
+        if(i % 2 == 0):
+            ground_truth = line.split('|')[1]
+            list_item = re.split('[\\s]+',ground_truth.strip())
+#             print(list_item)
             list_seq.append(list_item.copy())
             list_item.clear()
-        if(i % 2 == 0):
+        if(i % 2 == 1):
             predicted_items = line.split('|')[1:top_k+1]
             list_top_k_item = []
             for item in predicted_items:
                 item_key = item.strip().split(':')[0]
                 list_top_k_item.append(item_key)
+#             print("top k", list_top_k_item)
             list_seq_topk_predicted.append(list_top_k_item.copy())
             list_top_k_item.clear()
 list_recall = []
