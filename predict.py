@@ -53,6 +53,7 @@ parser.add_argument('--data_dir', type=str, help='folder contains data', require
 parser.add_argument('--device', type=str, help='device for train and predict', default='cpu')
 parser.add_argument('--num_edges', type=int, help='Number of edges', default=1)
 # parser.add_argument('--nb_hop', type=int, help='level of correlation matrix', default=1)
+parser.add_argument('--config_param', type=str, help='config param path', required=True)
 parser.add_argument('--batch_size', type=int, help='batch size predict', default=8)
 parser.add_argument('--nb_predict', type=int, help='number items predicted', default=10)
 parser.add_argument('--log_result_dir', type=str, help='folder to save result', required=True)
@@ -82,7 +83,7 @@ for i, edge in enumerate(edges):
         A = torch.cat([A,torch.from_numpy(edge.todense()).type(torch.FloatTensor).unsqueeze(-1)], dim=-1)
 
 # ckpt_path = ckpt_dir + '/' + prefix_model_ckpt + '/' + 'epoch_' + str(args.epoch) + '/' + prefix_model_ckpt + '_checkpoint.pt'
-config_param_file = ckpt_dir + '/' + prefix_model_name + '_config.json'
+config_param_file = args.config_param
 load_param = check_point.load_config_param(config_param_file)
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # model_data_type = torch.float32
