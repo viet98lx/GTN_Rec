@@ -215,6 +215,9 @@ output_dir = args.output_dir
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
+if not os.path.exists(output_dir+'/'+args.model_name):
+    os.makedirs(output_dir+'/'+args.model_name)
+
 best_model_dir = output_dir + '/best_model/'
 try:
     os.makedirs(best_model_dir, exist_ok = True)
@@ -344,7 +347,7 @@ for ep in range(epoch):
              'lr': args.lr,
              'seed': args.seed
     }
-    check_point.save_ckpt(state, args.model_name, output_dir, ep)
+    check_point.save_ckpt(state, args.model_name, output_dir+'/'+args.model_name, ep)
     if (avg_test_f1 > f1_max):
         score_matrix = []
         print('Test loss decrease from ({:.6f} --> {:.6f}) '.format(loss_min, avg_test_loss))
