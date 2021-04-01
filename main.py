@@ -268,6 +268,7 @@ for i in range(args.num_edges):
     adj_matrix = sp.load_npz(data_dir + 'adj_matrix/v2_r_matrix_' + str(i+1) + 'w.npz')
     edges.append(adj_matrix)
 
+edges.reverse()
 ############### Dense version ##########################
 for i, edge in enumerate(edges):
     if i ==0:
