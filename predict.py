@@ -18,7 +18,7 @@ def generate_predict(model, A, data_loader, result_file, reversed_item_dict, num
     print("Total Batch in data set %d" % total_batch)
     model.eval()
     with open(result_file, 'w') as f:
-        f.write('Predict result: ')
+        # f.write('Predict result: ')
         for i, data_pack in enumerate(data_loader,0):
             data_x, data_seq_len, data_y = data_pack
             x_ = data_x.to_dense().to(dtype = model.dtype, device = device)
